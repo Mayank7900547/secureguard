@@ -1,0 +1,572 @@
+{
+    "1-s2.0-S187705092030065X-main.pdf": {
+        "metrics": [
+            {
+                "page": 1,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 2,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "1. I"
+                ]
+            },
+            {
+                "page": 9,
+                "acc": "0.7009",
+                "pre": "0.7015",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 10,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "6. C"
+                ]
+            },
+            {
+                "page": 11,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            }
+        ],
+        "summary": "ScienceDirect\nAvailable online at www.sciencedirect.com\nProcedia Computer Science 165 (2019) 631\u2013641\n1877-0509 \u00a9 2019 The Authors. Published by Elsevier B.V .\nThis is an open access article under the CC BY-NC-ND license ( http://creativecommons.org/licenses/by-nc-nd/4.0/ )\nPeer-review under responsibility of the scientific committee of the INTERNATIONAL CONFERENCE ON RECENT TRENDS IN \nADVANCED COMPUTING 2019.\n10.1016/j.procs.2020.01.057\n10.1016/j.procs.2020.01.057 1877-0509\n\u00a9 2019 The Authors. Published by Elsevier B.V .\nThis is an open access article under the CC BY-NC-ND license (http://creativecommons.org/licenses/by-nc-nd/4.0/)\nPeer-review under responsibility of the scientific committee of the INTERNATIONAL CONFERENCE ON RECENT TRENDS IN \nADV ANCED COMPUTING 2019.\n \nAvailable online at www.sciencedirect.com \nScienceDirect \nProcedia Computer Science 00 (2019) 000\u2013000  \nwww.elsevier.com/locate/procedia \n \n \n*Corresponding Author. Tel.: +91 9632474839 \nEmail Address: d.vaishnavinath@632 Vaishnavi Nath Dornadula  et al. / Procedia Computer Science 165 (2019) 631\u2013641\n2 Vaishnavi Nath Dornadula,Geetha S/ Procedia Computer Science 00 (2019) 000\u2013000 \n \n1. Introduction \n Credit card generally refers to a card that is assigned to the customer (cardholder), usually allowing them to \npurchase goods and services within credit limit or withdraw cash in ad vance. Credit card provides the cardholder an \nadvantage of the time, i.e., it provides time for their customers to repay later in a prescribed time, by carrying it to the \nnext billing cycle.  \n Credit card frauds are easy targets. Without any risks, a signi ficant amount can be withdrawn without the \nowner\u2019s knowledge, in a short period. Fraudsters always try to make every fraudulent transaction legitimate, which \nmakes fraud detection very challenging and difficult task to detect. \n In 2017, there were 1,579 data breaches and nearly 179 million records among which Credit card frauds were \nthe most common form with 133,01"
+    },
+    "Real-time-Credit-Card-Fraud-Detection-Using-Machine-Learning.pdf": {
+        "metrics": [
+            {
+                "page": 1,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 2,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 4,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 5,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 6,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "2018. \n"
+                ]
+            }
+        ],
+        "summary": "Real-time Credit Card Fraud Detection Using \nMachine Learning\nAnuruddha Thennakoon1, Chee Bhagyani2, Sasitha Premadasa3, Shalitha Mihiranga4, Nuwan Kuruwitaarachchi5  \nFaculty of Computing  \nSri Lanka Institute of Information Technology  \nColombo, Sri Lanka \n1anuruddha.thennakoon@gmail.com,2bhagyani.lochana@my.sliit.lk,3sasitha.premadasa@my.sliit.lk, \n4shalitha.mihiranga@my.sliit.lk,5nuwan.ku@sliit.lk \nAbstract\u00b2Credit card fraud events take place frequently \nand then result in huge financial losses [1]. The number of \nonline transactions has grown in large quantities and online \ncredit card transactions holds a huge share of these \ntransactions. Therefore, banks and financial institutions offer \ncredit card fraud detection applications much value and \ndemand. Fraudulent transactions can occur in various ways \nand can be put into different categories. This paper focuses on \nfour main fraud occasions in real-world transactions. Each \nfraud is addressed using a series of machine learning later use of implementing an efficient machine learning \nmodel. \nWith the analysis of various detection models, past \nresearchers have found many problems regarding fraud \ndetection. In [14] and [3] they have mentioned Lack of real-\nlife data as a huge issue. Real life data are lacking because \nof the data sensitivity and privacy issues. Papers [3] and [7] \nhave studied Imbalance data or skewed distribution of data. \nThe reason behind this is having quite a less amount of \nfrauds when compared to non-frauds in the transaction \ndatasets. Paper [3] states that data mining techniques take \ntime to execute when dealing with big data. Overlapping of \ndata is another major drawback in preparation of credit card \ntransaction data. According to paper [2] and [7] the issue \noccurs due to some scenarios when the legitimate \ntransactions look exactly like fraudulent transactions. In \nanother way, fraudulent transactions may appear as \nlegitimate transactions. Also, they have come across the \ndiff"
+    },
+    "Credit Card Fraud Detection with Automated Machine Learning Systems.pdf": {
+        "metrics": [
+            {
+                "page": 1,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 2,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 15,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "1. JAD B"
+                ]
+            },
+            {
+                "page": 16,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "2. T",
+                    "3. T"
+                ]
+            },
+            {
+                "page": 17,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            }
+        ],
+        "summary": "Applied Arti\ufb01cial Intelligence\nAn International Journal\nISSN: 0883-9514 (Print) 1087-6545 (Online) Journal homepage: www.tandfonline.com/journals/uaai20\nCredit Card Fraud Detection with Automated\nMachine Learning Systems\nVasilios Plakandaras, Periklis Gogas, Theophilos Papadimitriou & Ioannis\nTsamardinos\nTo cite this article: Vasilios Plakandaras, Periklis Gogas, Theophilos Papadimitriou & Ioannis\nTsamardinos (2022) Credit Card Fraud Detection with Automated Machine Learning Systems,\nApplied Arti\ufb01cial Intelligence, 36:1, 2086354, DOI: 10.1080/08839514.2022.2086354\nTo link to this article:  https://doi.org/10.1080/08839514.2022.2086354\n\u00a9 2022 The Author(s). Published with\nlicense by Taylor & Francis Group, LLC.\nPublished online: 13 Jun 2022.\nSubmit your article to this journal \nArticle views: 8700\nView related articles \nView Crossmark data\nCiting articles: 20 View citing articles \nFull Terms & Conditions of access and use can be found at\nhttps://www.tandfonline.com/action/journalInformaCredit Card Fraud Detection with Automated Machine \nLearning Systems\nVasilios Plakandaras\na\n, Periklis Gogas\na\n, Theophilos Papadimitriou\na\n, \nand Ioannis Tsamardinos\nb\na\nDepartment of Economics, Democritus University of Thrace, Komotini, Greece; \nb\nDepartment of \nComputer Science, University of Crete and Gnosis Data Analysis, Greece\nABSTRACT\nThe steady increase at the turnover of online trading during the \nlast decade and the increasing use of credit cards has subse -\nquently made credit card frauds more prevalent. Machine \nLearning (ML) models are among the most prominent techni -\nques in detecting illicit transactions. In this paper, we apply the \nJust-Add-Data (JAD), a system that automates the selection of \nMachine Learning algorithms, the tuning of their hyper- \nparameter values, and the estimation of performance in detect -\ning fraudulent transactions using a highly unbalanced dataset, \nswiftly providing prediction model for credit card fraud detec -\ntion. The training of the mo"
+    },
+    "s44230-022-00004-0.pdf": {
+        "metrics": [
+            {
+                "page": 1,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 2,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 12,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 13,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 14,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "009.\n ",
+                    "20.\n "
+                ]
+            }
+        ],
+        "summary": "Vol.:(0123456789)1 3\nHuman-Centric Intelligent Systems (2022) 2:55\u201368 \nhttps://doi.org/10.1007/s44230-022-00004-0\nREVIEW ARTICLE\nReview of\u00a0Machine Learning Approach on\u00a0Credit Card Fraud Detection\nRejwan\u00a0Bin\u00a0Sulaiman1 \u00a0\u00b7 Vitaly\u00a0Schetinin1\u00a0\u00b7 Paul\u00a0Sant1\nReceived: 25 November 2021 / Accepted: 28 March 2022 / Published online: 5 May 2022 \n\u00a9 The Author(s) 2022\nAbstract\nMassive usage of credit cards has caused an escalation of fraud. Usage of credit cards has resulted in the growth of online \nbusiness advancement and ease of the e-payment system. The use of machine learning (methods) are adapted on a larger \nscale to detect and prevent fraud. ML algorithms play an essential role in analysing customer data. In this research article, \nwe have conducted a comparative analysis of the literature review considering the ML techniques for credit card fraud detec-\ntion (CCFD) and data confidentiality. In the end, we have proposed a hybrid solution, using the neural network (ANN) in a \nfederated learni56 Human-Centric Intelligent Systems (2022) 2:55\u201368\n1 3\nthe barrier to exchanging ideas related to fraud detection. \nAccording to a study by \u201cU.K. finance\u201d, the number of credit \nand debit fraud cases reported in the U.K. worth \u00a3574.2 mil-\nlion in 2020 [27].\nIn recent years, fraud detection in credit card has \nincreased tremendously, drawing the attention of most \nscholars and researchers [22]. This research paper seeks \nto review and evaluate various aspects of credit and debit \nfraud detection. The paper examines various techniques \nused to detect fraudulent credit card transactions and \nfinally proposes a better technique for credit card fraud. \nResearchers are trying to solve some methodological bar -\nriers that pose a limitation in ML real-time application. \nVarious research has been done in different domains such \nas abnormal patterns detection [28\u2013 35], biometric identi-\nfication [36, 37], Diabetes Prediction [38, 39], Happiness \nprediction [40], Water quality prediction [41], a"
+    },
+    "electronics-14-01754.pdf": {
+        "metrics": [
+            {
+                "page": 1,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "1. I"
+                ]
+            },
+            {
+                "page": 2,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "2. L"
+                ]
+            },
+            {
+                "page": 30,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "61. A",
+                    "62. W",
+                    "63. B",
+                    "64. B",
+                    "65. A",
+                    "66. C",
+                    "67. W",
+                    "68. S",
+                    "69. E",
+                    "70. P",
+                    "71. V",
+                    "72. S",
+                    "73. R",
+                    "74. A",
+                    "75. F",
+                    "76. X",
+                    "77. W",
+                    "78. C",
+                    "79. A",
+                    "80. E",
+                    "81. L",
+                    "82. A",
+                    "83. S",
+                    "84. V"
+                ]
+            },
+            {
+                "page": 31,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "85. B",
+                    "86. K",
+                    "87. T",
+                    "88. B",
+                    "89. A",
+                    "90. P",
+                    "91. G",
+                    "92. K",
+                    "94. A",
+                    "95. S",
+                    "96. A",
+                    "97. K",
+                    "98. A",
+                    "99. A",
+                    "100. V",
+                    "101. B",
+                    "102. S",
+                    "103. K",
+                    "104. M",
+                    "105. T",
+                    "106. C",
+                    "107. E",
+                    "108. V"
+                ]
+            },
+            {
+                "page": 32,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "109. K",
+                    "110. K",
+                    "111. L",
+                    "112. S",
+                    "113. C",
+                    "114. A",
+                    "115. Z",
+                    "116. H",
+                    "117. D",
+                    "118. C",
+                    "119. B",
+                    "120. S",
+                    "121. G",
+                    "122. A",
+                    "123. A",
+                    "124. G",
+                    "125. K",
+                    "126. K",
+                    "127. A",
+                    "128. Z",
+                    "129. A"
+                ]
+            }
+        ],
+        "summary": "Academic Editor: Pablo Alejandro\nQuezada-Sarmiento\nReceived: 18 March 2025\nRevised: 17 April 2025\nAccepted: 22 April 2025\nPublished: 25 April 2025\nCitation: Theodorakopoulos, L.;\nTheodoropoulou, A.; Tsimakis, A.;\nHalkiopoulos, C. Big Data-Driven\nDistributed Machine Learning for\nScalable Credit Card Fraud Detection\nUsing PySpark, XGBoost, and\nCatBoost. Electronics 2025, 14, 1754.\nhttps://doi.org/10.3390/\nelectronics14091754\nCopyright: \u00a9 2025 by the authors.\nLicensee MDPI, Basel, Switzerland.\nThis article is an open access article\ndistributed under the terms and\nconditions of the Creative Commons\nAttribution (CC BY) license\n(https://creativecommons.org/\nlicenses/by/4.0/).\nArticle\nBig Data-Driven Distributed Machine Learning for Scalable\nCredit Card Fraud Detection Using PySpark, XGBoost,\nand CatBoost\nLeonidas Theodorakopoulos\n , Alexandra Theodoropoulou\n , Anastasios Tsimakis\nand Constantinos Halkiopoulos *\nDepartment of Management Science and Technology, University of Patras, 26334 PatrElectronics 2025, 14, 1754 2 of 32\ncould detect [5]. Further, unlike traditional methods, which rely on some empirical rules\nor rigid algorithms, ML adapts to constantly changing data and provides quicker and\nmore accurate decisions. This adaptability is essential in fraud detection since fraudulent\nbehaviors frequently change to get around detection systems [6,7].\nDespite the potential, the application of ML in fraud detection is confronted with\nserious challenges. The most prominent challenge involves highly imbalanced fraud-related\ndata since fraudulent transactions constitute a tiny percentage of total transactions [8,9]. In\naddition, the volume of financial data needs a framework capable of handling large-scale\nprocessing efficiently. Distributed computing platforms such as PySpark address these\ndemands by enabling scalable and parallelized data processing, reducing latency, and\nenhancing system performance [10\u201312].\nCredit card fraud is developing alongside improving abilities to "
+    },
+    "journal.pone.0326975.pdf": {
+        "metrics": [
+            {
+                "page": 1,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 2,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 33,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "55. E",
+                    "56. M",
+                    "57. L",
+                    "58. P",
+                    "59. A",
+                    "60. K",
+                    "61. D",
+                    "62. M",
+                    "63. P",
+                    "64. R",
+                    "65. S",
+                    "66. Y",
+                    "67. S",
+                    "68. K",
+                    "69. R",
+                    "70. X",
+                    "71. L",
+                    "72. W",
+                    "73. T",
+                    "74. T ",
+                    "75. W",
+                    "76. J",
+                    "77. D"
+                ]
+            },
+            {
+                "page": 34,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "78. H",
+                    "79. A",
+                    "80. Z",
+                    "81. L",
+                    "82. J",
+                    "83. G",
+                    "84. K",
+                    "85. S"
+                ]
+            },
+            {
+                "page": 32,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "32. J",
+                    "33. A",
+                    "34. I",
+                    "35. W",
+                    "36. A",
+                    "37. C",
+                    "38. S",
+                    "39. L",
+                    "40. E",
+                    "41. I",
+                    "42. P",
+                    "43. O",
+                    "44. S",
+                    "45. S",
+                    "46. K",
+                    "47. H",
+                    "48. M",
+                    "49. K",
+                    "50. V",
+                    "51. B",
+                    "52. F",
+                    "53. E",
+                    "54. E"
+                ]
+            }
+        ],
+        "summary": "ID: pone.0326975 \u2014 2025/7/12 \u2014 page 1 \u2014 #1\nPLOS ONE\nOPEN ACCESS\nCitation: Siam AM, Bhowmik P, Uddin MP\n(2025) Hybrid feature selection framework for\nenhanced credit card fraud detection using\nmachine learning models. PLoS One 20(7):\ne0326975. https://doi.org/10.1371/journal.pone.\n0326975\nEditor: Sunil Kumar Sharma, Majmaah Univer-\nsity, SAUDI ARABIA\nReceived: January 06, 2025\nAccepted: June 08, 2025\nPublished: July 16, 2025\nCopyright: \u00a9 2025 Siam et al. This is an open\naccess article distributed under the terms of\nthe Creative Commons Attribution License ,\nwhich permits unrestricted use, distribution,\nand reproduction in any medium, provided the\noriginal author and source are credited.\nData availability statement: Data rele-\nvant to this study are available from https:\n//www.kaggle.com/datasets/almahmudsiam/\n5-datasetss.\nFunding: The author(s) received no specific\nfunding for this work.\nCompeting interests: We have declared that no\ncompeting interests exist.\nRESEARCH ARTICLE\nHybrid feaID: pone.0326975 \u2014 2025/7/12 \u2014 page 2 \u2014 #2\nPLOS One Enhanced credit card fraud detection using machine learning models\nmethods to perform transactions have undergone significant changes and growth in recent\nyears. The evolution of modern lifestyles, technological advancements, and the widespread\nadoption of online applications have all contributed to the rise of electronic commerce\n(e-commerce) and online credit card transactions for purchases and payments [1,2]. The\ntrend towards a cashless society is undeniable, with future transactions increasingly shifting\naway from traditional cash-based methods. Consequently, customers will no longer need to\ncarry cash for in-store purchases, compelling businesses to enhance their infrastructure to\naccommodate diverse payment processing methods. This shift is expected to intensify in the\ncoming years [3].\nHowever, in addition to these advancements, there has been a notable increase in secu-\nrity issues associated with credit card transactions. Cr"
+    },
+    "computers-14-00437.pdf": {
+        "metrics": [
+            {
+                "page": 1,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "1. I"
+                ]
+            },
+            {
+                "page": 2,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 21,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "28. F",
+                    "29. T",
+                    "30. S",
+                    "31. G",
+                    "32. J",
+                    "33. B",
+                    "34. P",
+                    "35. S",
+                    "36. A",
+                    "37. N",
+                    "38. B",
+                    "39. R",
+                    "40. I",
+                    "41. J",
+                    "42. S",
+                    "43. R",
+                    "44. M",
+                    "45. C",
+                    "46. R"
+                ]
+            },
+            {
+                "page": 22,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "47. P",
+                    "48. R",
+                    "49. C",
+                    "50. R",
+                    "51. K",
+                    "52. G",
+                    "53. H",
+                    "54. L",
+                    "55. B",
+                    "56. S",
+                    "57. K",
+                    "58. J",
+                    "59. H",
+                    "60. G",
+                    "61. S",
+                    "62. L",
+                    "63. L",
+                    "64. P",
+                    "65. P",
+                    "66. L",
+                    "67. L",
+                    "68. K",
+                    "69. A"
+                ]
+            },
+            {
+                "page": 23,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": [
+                    "70. IBM",
+                    "71. C",
+                    "72. K",
+                    "73. K",
+                    "74. S",
+                    "75. N",
+                    "76. O",
+                    "77. F",
+                    "78. B",
+                    "79. U",
+                    "80. I",
+                    "81. C",
+                    "82. R",
+                    "83. A",
+                    "84. A",
+                    "85. A",
+                    "86. G"
+                ]
+            }
+        ],
+        "summary": "Academic Editor: Paolo Bellavista\nReceived: 14 August 2025\nRevised: 12 September 2025\nAccepted: 12 October 2025\nPublished: 15 October 2025\nCitation: Baisholan, N.; Dietz, J.E.;\nGnatyuk, S.; Turdalyuly, M.; Matson,\nE.T.; Baisholanova, K. A Systematic\nReview of Machine Learning in Credit\nCard Fraud Detection Under Original\nClass Imbalance. Computers 2025, 14,\n437. https://doi.org/10.3390/\ncomputers14100437\nCopyright: \u00a9 2025 by the authors.\nLicensee MDPI, Basel, Switzerland.\nThis article is an open access article\ndistributed under the terms and\nconditions of the Creative Commons\nAttribution (CC BY) license\n(https://creativecommons.org/\nlicenses/by/4.0/).\nSystematic Review\nA Systematic Review of Machine Learning in Credit Card Fraud\nDetection Under Original Class Imbalance\nNazerke Baisholan 1,2, *\n , J. Eric Dietz 3, Sergiy Gnatyuk 4,5\n , Mussa T urdalyuly2,6,7, *\n , Eric T. Matson 3\nand Karlygash Baisholanova 1,*\n1 Faculty of Information Technology, Al-Farabi Kazakh National University, AComputers 2025, 14, 437 2 of 23\nstatement manipulation, money laundering, and synthetic identity creation [2]. Among\nthese, credit card fraud remains one of the most pervasive and damaging forms, affecting\nthe global financial landscape, costing businesses, consumers, and governments billions of\ndollars annually. The scope and sophistication of fraud have escalated sharply in recent\nyears, driven by the widespread adoption of digital technologies and the emergence of\nadvanced tools like generative artificial intelligence.\nAccording to the European Central Bank and European Banking Authority, over 70%\nof fraudulent payment transactions across the EU in recent years were associated with\ndigital channels, including phishing attacks, account takeovers, and card-not-present (CNP)\nfraud scenarios [3]. This trend underscores the growing exposure of electronic payment\nsystems to cyber-enabled threats. In a global context, the Nilson Report highlights a signifi-\ncant imbalance in fraud distribu"
+    },
+    "s40537-022-00573-8.pdf": {
+        "metrics": [
+            {
+                "page": 1,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 2,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 15,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 16,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 17,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            }
+        ],
+        "summary": "A machine learning based credit card fraud \ndetection using the\u00a0GA algorithm for\u00a0feature \nselection\nEmmanuel Ileberi1*, Yanxia Sun1 and Zenghui Wang2 \nIntroduction\nIn the last decade, there has been an exponential growth of the Internet. This has \nsparked the proliferation and increase in the use of services such as e-commerce, tap and \npay systems, online bills payment systems etc. As a consequence, fraudsters have also \nincreased activities to attack transactions that are made using credit cards. There exists \na number of mechanisms used to protect credit cards transactions including credit card \ndata encryption and tokenization [1]. Although such methods are effective in most of \nthe cases, they do not fully protect credit card transactions against fraud.\nMachine Learning (ML) is a sub-field of Artificial Intelligence (AI) that allows com -\nputers to learn from previous experience (data) and to improve on their predictive \nabilities without explicitly being programmed to do so [2 ].Page 2 of 17Ileberi\u00a0et\u00a0al. Journal of Big Data            (2022) 9:24 \ncard fraud activities were the most prevalent [4 ]. Therefore, it is crucial to implement \nan effective credit card fraud detection method that is able to protect users from \nfinancial loss. One of the key issues with applying ML approaches to the credit card \nfraud detection problem is that most of the published work are impossible to repro -\nduce. This is because credit card transactions are highly confidential. Therefore, the \ndatasets that are used to develop ML models for credit card fraud detection contain \nanonymized attributes. Furthermore, credit card fraud detection is a challenging task \nbecause of the constantly changing nature and patterns of the fraudulent transactions \n[5]. Additionally, existing ML models for credit card fraud detection suffer from a low \ndetection accuracy and are not able to solve the highly skewed nature of credit card \nfraud datasets. Therefore, it is essential to develop ML mode"
+    },
+    "Credit_Card_Fraud_Detection_Using_State-of-the-Art_Machine_Learning_and_Deep_Learning_Algorithms.pdf": {
+        "metrics": [
+            {
+                "page": 1,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 2,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 14,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 15,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            },
+            {
+                "page": 16,
+                "acc": "N/A",
+                "pre": "N/A",
+                "rec": "N/A",
+                "headings": []
+            }
+        ],
+        "summary": "Received March 20, 2022, accepted April 8, 2022, date of publication April 12, 2022, date of current version April 18, 2022.\nDigital Object Identifier 10.1 109/ACCESS.2022.3166891\nCredit Card Fraud Detection Using\nState-of-the-Art Machine Learning\nand Deep Learning Algorithms\nFAWAZ KHALED ALARFAJ\n1, IQRA MALIK 2, HIKMAT ULLAH KHAN\n 3, NAIF ALMUSALLAM 1,\nMUHAMMAD RAMZAN\n 2, AND MUZAMIL AHMED\n 3\n1Department of Computer and Information Sciences, Imam Mohammad Ibn Saud Islamic University (IMSIU), Riyadh 11564, Saudi Arabia\n2Department of Computer Science and Information Technology, University of Sargodha, Sargodha 40100, Pakistan\n3Department of Computer Science, COMSA TS University Islamabad, Wah Campus, Wah Cantt 47040, Pakistan\nCorresponding author: Hikmat Ullah Khan (hikmat.ullah@ciitwah.edu.pk)\nThis work was supported by the Deanship of Scienti\ufb01c Research at Imam Mohammad Ibn Saud Islamic University through the Research\nGroup under Grant RG-21-51-01.\nABSTRACT People can use credit cardF. K. Alarfaj et al.: CCF Detection Using State-of-the-Art ML and DL Algorithms\nthat the future is heading towards a cashless culture. As a\nresult, typical payment methods will no longer be used in the\nfuture, and therefore they will not be helpful for expanding\na business. Customers will not always visit the business with\ncash in their pockets. They are now placing a premium on\ndebit and credit card payments. As a result, companies will\nneed to update their environment to ensure that they can\ntake all types of payments. In the next years, this situation\nis expected to become much more severe [1].\nIn 2020, there were 393,207 cases of CCF out of approx-\nimately 1.4 million total reports of identity theft [4]. CCF is\nnow the second most prevalent sort of identity theft recorded\nas of this year, only following government documents and\nbene\ufb01ts fraud [5]. In 2020, there were 365,597 incidences of\nfraud perpetrated using new credit card accounts [10]. The\nnumber of identity theft complaints "
+    }
+}
