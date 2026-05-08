@@ -1283,11 +1283,15 @@ to balance false alarms vs missed frauds based on the cost of each.
 #  TAB 6 — CARD HEALTH CHECK (Two-Panel Account Takeover Detection)
 # ─────────────────────────────────────────────────────────────────────────────
 elif menu == "🩺 Card Health Check":
+    import time as _time
+    import json as _json
+
     st.markdown("### 🩺 Card Health & Account Security")
     st.markdown(
-        "Your registered profile is **Panel 1** (locked). "
-        "**Panel 2** simulates a second session on your account — exactly what happens during account takeover. "
-        "Any mismatch triggers an immediate alert to your registered email."
+        "**Panel 1** is your registered profile. "
+        "**Panel 2** is the attacker's active session — when they log into your account "
+        "from another device and process a transaction, it appears here automatically "
+        "and an alert is sent to your email instantly."
     )
 
     validator    = CardValidator()
@@ -1295,203 +1299,39 @@ elif menu == "🩺 Card Health Check":
     user_id      = st.session_state.get("user_id", "")
     user_email   = st.session_state.get("user_email", "")
 
-    # ── PANEL 1 — Registered Profile (locked) ─────────────────────────────────
-    st.markdown("---")
-    st.markdown("""
-    <div style="background:rgba(20,20,20,0.9);border:1px solid rgba(212,175,55,0.3);
-      border-radius:10px;padding:14px 20px;margin-bottom:6px;">
-      <span style="color:#d4af37;font-size:1.1rem;font-weight:700;">🔒 Panel 1 — Your Registered Profile</span>
-      <span style="color:#a0998a;font-size:.85rem;margin-left:10px;">(Saved to your account — read only)</span>
-    </div>""", unsafe_allow_html=True)
+    # ── Initialise real-time state ────────────────────────────────────────────
+    if "last_seen_session_ts" not in st.session_state:
+        st.session_state["last_seen_session_ts"] = ""
+    if "realtime_enabled" not in st.session_state:
+        st.session_state["realtime_enabled"] = False
+    if "last_refresh_time" not in st.session_state:
+        st.session_state["last_refresh_time"] = 0.0
+    if "attacker_session_live" not in st.session_state:
+        st.session_state["attacker_session_live"] = None   # holds latest attacker session dict
 
-    db_profile = st.session_state.get("db_profile", {})
-    saved_name     = db_profile.get("full_name",           st.session_state.get("user_name", ""))
-    saved_location = db_profile.get("registered_location", "India")
-    saved_spend    = db_profile.get("daily_spend_limit",   80.0)
-    saved_max_txn  = db_profile.get("max_transactions_day",10)
-    saved_card4    = db_profile.get("card_last4",          "")
-    saved_exp_m    = db_profile.get("card_expiry_month",   12)
-    saved_exp_y    = db_profile.get("card_expiry_year",    2026)
-    saved_ifsc     = db_profile.get("ifsc_code",           "")
-    saved_acct     = db_profile.get("account_name",        saved_name)
-
-    with st.expander("👤 Edit / Save Your Profile", expanded=not bool(db_profile)):
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            p_name     = st.text_input("Full Name",           value=saved_name,     key="p1_name")
-            p_card4    = st.text_input("Card Last 4 Digits",  value=saved_card4,    key="p1_card4", max_chars=4,
-                                       help="Only last 4 — full card number is never stored")
-            p_ifsc     = st.text_input("IFSC Code",           value=saved_ifsc,     key="p1_ifsc",
-                                       placeholder="e.g. HDFC0001234")
-        with c2:
-            p_location = st.text_input("Your Home Location",  value=saved_location, key="p1_loc",
-                                       help="City or country you normally transact from")
-            p_spend    = st.number_input("Normal Daily Spend ($)", min_value=1, max_value=50000,
-                                         value=int(saved_spend), key="p1_spend")
-            em_c1, em_c2 = st.columns(2)
-            with em_c1:
-                p_exp_m = st.selectbox("Expiry Month", list(range(1,13)),
-                                        index=int(saved_exp_m)-1 if saved_exp_m else 11,
-                                        key="p1_expm", format_func=lambda x: f"{x:02d}")
-            with em_c2:
-                p_exp_y = st.selectbox("Expiry Year", list(range(2024,2036)),
-                                        index=max(0, int(saved_exp_y)-2024) if saved_exp_y else 2,
-                                        key="p1_expy")
-        with c3:
-            p_max_txn  = st.number_input("Max Transactions/Day", min_value=1, max_value=200,
-                                          value=int(saved_max_txn), key="p1_txn")
-            p_email    = st.text_input("Alert Email", value=user_email, key="p1_email",
-                                       help="Where fraud alerts will be sent")
-            p_acct     = st.text_input("Account Holder Name", value=saved_acct, key="p1_acct",
-                                       help="Name as it appears on your bank account")
-        st.markdown("<div style='color:#a0998a;font-size:.78rem;margin-top:4px;'>⚠️ CVV and full card/account numbers are never stored — by design.</div>", unsafe_allow_html=True)
-
-        if st.button("💾 Save Profile to Account", type="primary"):
-            profile_data = {
-                "full_name":            p_name,
-                "card_last4":           p_card4,
-                "registered_location":  p_location,
-                "daily_spend_limit":    p_spend,
-                "max_transactions_day": p_max_txn,
-                "email":                p_email,
-                "card_expiry_month":    p_exp_m,
-                "card_expiry_year":     p_exp_y,
-                "ifsc_code":            p_ifsc,
-                "account_name":         p_acct,
-            }
-            with st.spinner("Saving to Supabase..."):
-                result = upsert_profile(access_token, user_id, profile_data)
-            if result["ok"]:
-                st.session_state["db_profile"] = result.get("profile", profile_data)
-                st.success(f"✅ Profile saved for {p_name}! Alert email: {p_email}")
-            else:
-                st.error(f"❌ Save failed: {result.get('error','')}")
-
-    # Display locked profile summary
-    db_profile = st.session_state.get("db_profile", {})
-    if db_profile:
-        pc1, pc2, pc3, pc4, pc5 = st.columns(5)
-        pc1.metric("👤 Name",          db_profile.get("full_name","—"))
-        pc2.metric("📍 Location",      db_profile.get("registered_location","—"))
-        pc3.metric("💰 Daily Limit",   f"${db_profile.get('daily_spend_limit',80):,.0f}")
-        pc4.metric("🔁 Max Txn/Day",   db_profile.get("max_transactions_day",10))
-        exp_m = db_profile.get("card_expiry_month")
-        exp_y = db_profile.get("card_expiry_year")
-        expiry_str = f"{int(exp_m):02d}/{str(int(exp_y))[-2:]}" if exp_m and exp_y else "—"
-        pc5.metric("💳 Card Expiry", expiry_str)
-        if db_profile.get("ifsc_code"):
-            st.caption(f"🏦 IFSC: {db_profile.get('ifsc_code','')}  ·  Card: ****{db_profile.get('card_last4','XXXX')}")
-    else:
-        st.info("💡 Save your profile above first — Panel 2 will compare against it.")
-
-    # ── PANEL 2 — Active Session (Attacker / Other Device) ────────────────────
-    st.markdown("---")
-
-    # ── Realtime: poll Supabase for latest session from another device ────────
-    import time, json as _json
-    if access_token and user_id:
-        latest_sessions = get_session_history(access_token, user_id, limit=1)
-        if latest_sessions:
-            ls = latest_sessions[0]
-            ts = ls.get("timestamp","")
-            last_seen = st.session_state.get("last_realtime_ts","")
-            if ts != last_seen and ls.get("flagged"):
-                st.session_state["last_realtime_ts"] = ts
-                flags_raw = ls.get("flags","[]")
-                if isinstance(flags_raw, str):
-                    try: flags_raw = _json.loads(flags_raw)
-                    except: flags_raw = []
-                st.markdown(f"""
-                <div style="background:rgba(30,5,5,0.98);border:2px solid #e63946;border-radius:12px;
-                  padding:16px 22px;margin-bottom:16px;animation:pulse-red 1.5s infinite;">
-                  <div style="color:#e63946;font-size:1.2rem;font-weight:800;">
-                    🔴 LIVE ALERT — Another Device Is Active On Your Account
-                  </div>
-                  <div style="color:#a0998a;font-size:.9rem;margin-top:6px;">
-                    Location: <b style="color:#fff">{ls.get("session_location","Unknown")}</b> &nbsp;·&nbsp;
-                    Amount: <b style="color:#f5d060">${float(ls.get("amount",0)):,.2f}</b> &nbsp;·&nbsp;
-                    Transactions: <b style="color:#fff">{ls.get("num_transactions",0)}</b>
-                  </div>
-                  <div style="color:#a0998a;font-size:.82rem;margin-top:4px;">
-                    Detected at {ts[:19].replace("T"," ")} UTC
-                  </div>
-                </div>""", unsafe_allow_html=True)
-
-    # Auto-refresh every 8 seconds to pick up new sessions from other devices
-    if st.session_state.get("realtime_enabled", False):
-        last_refresh = st.session_state.get("last_refresh_time", 0)
-        now = time.time()
-        if now - last_refresh > 8:
-            st.session_state["last_refresh_time"] = now
-            time.sleep(0.2)
-            st.rerun()
-
-    rt_col, _ = st.columns([1,4])
-    with rt_col:
-        if st.button("🔴 Enable Live Monitoring" if not st.session_state.get("realtime_enabled") else "⏹ Stop Live Monitoring"):
-            st.session_state["realtime_enabled"] = not st.session_state.get("realtime_enabled", False)
-            st.rerun()
-
-    if st.session_state.get("realtime_enabled"):
-        st.success("🟢 Live monitoring ON — this page auto-refreshes every 8s to detect activity from other devices.")
-    else:
-        st.info("💡 Enable live monitoring to detect real-time activity from other devices on your account.")
-
-    st.markdown("""
-    <div style="background:rgba(20,5,5,0.9);border:1px solid rgba(230,57,70,0.4);
-      border-radius:10px;padding:14px 20px;margin-bottom:6px;">
-      <span style="color:#e63946;font-size:1.1rem;font-weight:700;">⚡ Panel 2 — Active Session</span>
-      <span style="color:#a0998a;font-size:.85rem;margin-left:10px;">
-        (Simulates another device logged into your account — attacker or genuine user)
-      </span>
-    </div>""", unsafe_allow_html=True)
-
-    s1, s2, s3 = st.columns(3)
-    with s1:
-        session_location = st.text_input("Session Location (where this device is)",
-                                          value="China", key="s2_loc",
-                                          help="Enter any city/country different from your registered location to trigger geographic alert")
-        merchant_type    = st.selectbox("Merchant Type", 
-                                         ["Normal", "Crypto Exchange", "Gambling", "Forex", "Electronics", "Luxury Goods"],
-                                         key="s2_merch")
-    with s2:
-        session_amount   = st.number_input("Transaction Amount ($)", min_value=0.01,
-                                            max_value=100000.0, value=500.0, key="s2_amt",
-                                            help="Amount this session is trying to spend")
-        session_num_txn  = st.number_input("Number of Transactions in This Session",
-                                            min_value=1, max_value=500, value=20, key="s2_ntxn")
-    with s3:
-        time_delta       = st.number_input("Time Between Transactions (seconds)",
-                                            min_value=1, max_value=3600, value=85, key="s2_td")
-        avg_7d           = st.number_input("Session Avg Spend Last 7 Days ($)",
-                                            min_value=0.0, max_value=100000.0, value=400.0, key="s2_avg7d")
-
-    st.markdown("")
-    process_col, _ = st.columns([1, 3])
-    with process_col:
-        process_btn = st.button("🚨 Process Transaction & Check for Threats", type="primary", use_container_width=True)
-
-    if process_btn:
-        profile = db_profile if db_profile else {
-            "full_name": st.session_state.get("user_name","User"),
-            "registered_location": "India",
-            "daily_spend_limit": 80,
-            "max_transactions_day": 10,
-            "email": user_email,
-        }
-
-        # ── Run all validation checks ────────────────────────────────────────
+    # ── Helper: auto-process a session written by the attacker ────────────────
+    def _auto_process_attacker_session(session: dict, profile: dict):
+        """
+        Run flag checks on an attacker session that just landed from Supabase.
+        Fires the email + PDF automatically — no button click needed.
+        Returns list of flags.
+        """
         flags = []
         registered_loc = profile.get("registered_location", "India")
         daily_limit    = float(profile.get("daily_spend_limit", 80))
         max_txn        = int(profile.get("max_transactions_day", 10))
+
+        session_location = session.get("session_location", "Unknown")
+        session_amount   = float(session.get("amount", 0))
+        session_num_txn  = int(session.get("num_transactions", 1))
+        merchant_type    = session.get("merchant_type", "Normal")
 
         # 1. Geographic Impossibility
         if session_location.strip().lower() != registered_loc.strip().lower():
             flags.append({
                 "check":    "Geographic Impossibility",
                 "severity": "Critical",
-                "detail":   f"Transaction from {session_location} — registered location is {registered_loc}. Physically impossible.",
+                "detail":   f"Transaction from {session_location} — registered location is {registered_loc}.",
             })
 
         # 2. Spending Spike
@@ -1522,84 +1362,531 @@ elif menu == "🩺 Card Health Check":
         high_risk_merchants = ["Crypto Exchange", "Gambling", "Forex"]
         if merchant_type in high_risk_merchants:
             flags.append({"check": "High-Risk Merchant", "severity": "High",
-                          "detail": f"Transaction at {merchant_type} — classified as high-risk merchant category"})
+                          "detail": f"Transaction at {merchant_type} — high-risk merchant category"})
 
-        # 5. Time Delta
-        if time_delta > 160:
-            flags.append({"check": "Time Delta Anomaly", "severity": "High",
-                          "detail": f"{time_delta}s between transactions — exceeds 160s high-risk threshold"})
-        elif time_delta > 110:
-            flags.append({"check": "Time Delta Anomaly", "severity": "Moderate",
-                          "detail": f"{time_delta}s between transactions — in moderate risk zone (110–160s)"})
+        if not flags:
+            return []   # nothing to alert on
 
-        # 6. Avg 7D Spending vs Baseline
-        if avg_7d > daily_limit * 7 * 2:
-            flags.append({"check": "7-Day Spending Baseline", "severity": "High",
-                          "detail": f"${avg_7d:,.2f} 7-day avg is 2× expected baseline of ${daily_limit*7:,.0f}"})
+        # Build session_data dict for email/PDF
+        session_data = {
+            "location":         session_location,
+            "amount":           session_amount,
+            "num_transactions": session_num_txn,
+            "merchant_type":    merchant_type,
+            "flagged":          True,
+            "flags":            flags,
+        }
+        alert_profile = {
+            "name":                   profile.get("full_name", "User"),
+            "card_last4":             profile.get("card_last4", "XXXX"),
+            "baseline_daily_spend":   daily_limit,
+            "normal_max_txn_per_day": max_txn,
+            "email":                  profile.get("email", user_email),
+            "registered_location":    registered_loc,
+        }
 
-        # ── Display results ──────────────────────────────────────────────────
-        st.markdown("---")
-        if flags:
-            overall_sev = "Critical" if any(f["severity"]=="Critical" for f in flags) else                           "High"     if any(f["severity"]=="High"     for f in flags) else "Moderate"
-            sev_color = {"Critical":"#e63946","High":"#ff8c42","Moderate":"#f5d060"}.get(overall_sev,"#f5d060")
+        # Generate PDF
+        auto_results_for_pdf = [{
+            "id":          f["check"].lower().replace(" ", "_"),
+            "name":        f["check"],
+            "category":    "Session Analysis",
+            "severity":    f["severity"],
+            "detail":      f["detail"],
+            "description": f["detail"],
+            "actions":     ["Review this transaction immediately.",
+                            "Freeze your card if you did not authorise it."],
+            "mode":        "Auto",
+        } for f in flags]
 
-            st.markdown(f"""
-            <div style="background:rgba(30,5,5,0.95);border:2px solid {sev_color};border-radius:12px;
-              padding:18px 24px;margin-bottom:16px;animation:pulse-red 2s infinite;">
-              <div style="color:{sev_color};font-size:1.4rem;font-weight:800;">
-                🚨 {len(flags)} Threat{'s' if len(flags)>1 else ''} Detected — {overall_sev} Risk
-              </div>
-              <div style="color:#a0998a;font-size:.9rem;margin-top:6px;">
-                Comparing Panel 2 session against your registered profile
-              </div>
-            </div>""", unsafe_allow_html=True)
+        pdf_bytes = generate_card_report(alert_profile, auto_results_for_pdf, [], mode="auto")
 
-            # Flag cards
-            for f in flags:
-                fc = {"Critical":"#e63946","High":"#ff8c42","Moderate":"#f5d060","Low":"#2ec4b6"}.get(f["severity"],"#f5d060")
-                fe = {"Critical":"🔴","High":"🟠","Moderate":"🟡","Low":"🟢"}.get(f["severity"],"🟡")
+        # Fire email automatically
+        alert_email = profile.get("email", user_email)
+        send_fraud_alert(
+            to_email     = alert_email,
+            user_name    = profile.get("full_name", "User"),
+            flags        = flags,
+            session_data = session_data,
+            profile      = profile,
+            pdf_bytes    = pdf_bytes,
+        )
+
+        # Log alert to Supabase
+        if access_token and user_id:
+            overall_sev = (
+                "Critical" if any(f["severity"] == "Critical" for f in flags) else
+                "High"     if any(f["severity"] == "High"     for f in flags) else
+                "Moderate"
+            )
+            log_alert(access_token, user_id, {
+                "type":        "account_takeover",
+                "severity":    overall_sev,
+                "title":       f"{len(flags)} threat(s) detected from {session_location}",
+                "description": "; ".join(f["detail"] for f in flags),
+                "flags":       flags,
+            })
+
+        return flags, pdf_bytes
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    #  REAL-TIME POLLING — runs on every Streamlit rerun
+    #  Checks Supabase for a new flagged session written by the attacker.
+    #  If found and not yet processed, auto-fires the alert.
+    # ═══════════════════════════════════════════════════════════════════════════
+    db_profile = st.session_state.get("db_profile", {})
+
+    if access_token and user_id and db_profile:
+        latest_sessions = get_session_history(access_token, user_id, limit=1)
+        if latest_sessions:
+            ls = latest_sessions[0]
+            ts = ls.get("timestamp", "")
+
+            # New session we haven't processed yet
+            if ts != st.session_state["last_seen_session_ts"] and ls.get("flagged"):
+                st.session_state["last_seen_session_ts"] = ts
+                st.session_state["attacker_session_live"] = ls
+
+                # Auto-process: run flags + send email automatically
+                flags_raw = ls.get("flags", "[]")
+                if isinstance(flags_raw, str):
+                    try:
+                        flags_raw = _json.loads(flags_raw)
+                    except Exception:
+                        flags_raw = []
+
+                # Only auto-fire email if this session came from Supabase
+                # (i.e., written by another device — not the local submit button)
+                if ls.get("auto_submitted", False):
+                    try:
+                        result = _auto_process_attacker_session(ls, db_profile)
+                        if result:
+                            st.session_state["auto_alert_fired"] = True
+                            st.session_state["auto_alert_flags"] = result[0]
+                    except Exception as e:
+                        st.session_state["auto_alert_error"] = str(e)
+
+    # ── Auto-refresh loop (8 seconds) ─────────────────────────────────────────
+    if st.session_state["realtime_enabled"]:
+        now = _time.time()
+        if now - st.session_state["last_refresh_time"] > 8:
+            st.session_state["last_refresh_time"] = now
+            _time.sleep(0.1)
+            st.rerun()
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    #  AUTO ALERT BANNER — shows when email was auto-fired by attacker's session
+    # ═══════════════════════════════════════════════════════════════════════════
+    if st.session_state.get("auto_alert_fired"):
+        auto_flags = st.session_state.get("auto_alert_flags", [])
+        overall_sev = (
+            "Critical" if any(f["severity"] == "Critical" for f in auto_flags) else
+            "High"     if any(f["severity"] == "High"     for f in auto_flags) else
+            "Moderate"
+        )
+        sev_color = {"Critical": "#e63946", "High": "#ff8c42", "Moderate": "#f5d060"}.get(overall_sev, "#f5d060")
+        ls = st.session_state.get("attacker_session_live", {})
+
+        st.markdown(f"""
+        <div style="background:rgba(30,5,5,0.98);border:2px solid {sev_color};border-radius:12px;
+          padding:18px 24px;margin-bottom:20px;animation:pulse-red 1.5s infinite;">
+          <div style="color:{sev_color};font-size:1.3rem;font-weight:800;">
+            🚨 LIVE ALERT — Attacker Session Detected & Email Auto-Sent
+          </div>
+          <div style="color:#a0998a;font-size:.9rem;margin-top:8px;">
+            Location: <b style="color:#fff">{ls.get('session_location','Unknown')}</b> &nbsp;·&nbsp;
+            Amount: <b style="color:#f5d060">${float(ls.get('amount',0)):,.2f}</b> &nbsp;·&nbsp;
+            Transactions: <b style="color:#fff">{ls.get('num_transactions',0)}</b> &nbsp;·&nbsp;
+            Merchant: <b style="color:#fff">{ls.get('merchant_type','—')}</b>
+          </div>
+          <div style="color:#2ec4b6;font-size:.85rem;margin-top:6px;">
+            ✅ Fraud alert email with PDF report was automatically sent to <b>{db_profile.get('email', user_email)}</b>
+          </div>
+          <div style="color:#555;font-size:.78rem;margin-top:4px;">
+            Detected at {ls.get('timestamp','')[:19].replace('T',' ')} UTC
+          </div>
+        </div>""", unsafe_allow_html=True)
+
+        if st.button("✅ Dismiss Alert", key="dismiss_auto_alert"):
+            st.session_state["auto_alert_fired"] = False
+            st.session_state["auto_alert_flags"] = []
+            st.rerun()
+
+    # ── Live monitoring toggle ────────────────────────────────────────────────
+    col_rt, col_status = st.columns([1, 3])
+    with col_rt:
+        btn_label = (
+            "⏹ Stop Monitoring"
+            if st.session_state["realtime_enabled"]
+            else "🔴 Enable Live Monitoring"
+        )
+        if st.button(btn_label, use_container_width=True):
+            st.session_state["realtime_enabled"] = not st.session_state["realtime_enabled"]
+            st.session_state["last_refresh_time"] = 0.0
+            st.rerun()
+    with col_status:
+        if st.session_state["realtime_enabled"]:
+            st.success("🟢 Live monitoring ON — checking for attacker sessions every 8 seconds. "
+                       "Email fires automatically when a threat is detected.")
+        else:
+            st.info("💡 Enable live monitoring to auto-detect activity from another device on your account.")
+
+    st.markdown("---")
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    #  PANEL 1 — Registered Profile (locked)
+    # ═══════════════════════════════════════════════════════════════════════════
+    st.markdown("""
+    <div style="background:rgba(20,20,20,0.9);border:1px solid rgba(212,175,55,0.3);
+      border-radius:10px;padding:14px 20px;margin-bottom:12px;">
+      <span style="color:#d4af37;font-size:1.1rem;font-weight:700;">🔒 Panel 1 — Your Registered Profile</span>
+      <span style="color:#a0998a;font-size:.85rem;margin-left:10px;">(Saved to your account · read-only baseline)</span>
+    </div>""", unsafe_allow_html=True)
+
+    saved_name     = db_profile.get("full_name",           st.session_state.get("user_name", ""))
+    saved_location = db_profile.get("registered_location", "India")
+    saved_spend    = db_profile.get("daily_spend_limit",   80.0)
+    saved_max_txn  = db_profile.get("max_transactions_day", 10)
+    saved_card4    = db_profile.get("card_last4",          "")
+    saved_exp_m    = db_profile.get("card_expiry_month",   12)
+    saved_exp_y    = db_profile.get("card_expiry_year",    2026)
+    saved_ifsc     = db_profile.get("ifsc_code",           "")
+    saved_acct     = db_profile.get("account_name",        saved_name)
+
+    with st.expander("✏️ Edit / Save Your Profile", expanded=not bool(db_profile)):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            p_name     = st.text_input("Full Name",           value=saved_name,     key="p1_name")
+            p_card4    = st.text_input("Card Last 4 Digits",  value=saved_card4,    key="p1_card4", max_chars=4)
+            p_ifsc     = st.text_input("IFSC Code",           value=saved_ifsc,     key="p1_ifsc")
+        with c2:
+            p_location = st.text_input("Your Home Location",  value=saved_location, key="p1_loc")
+            p_spend    = st.number_input("Normal Daily Spend ($)", min_value=1, max_value=50000,
+                                         value=int(saved_spend), key="p1_spend")
+            em_c1, em_c2 = st.columns(2)
+            with em_c1:
+                p_exp_m = st.selectbox("Expiry Month", list(range(1, 13)),
+                                        index=int(saved_exp_m) - 1 if saved_exp_m else 11,
+                                        key="p1_expm", format_func=lambda x: f"{x:02d}")
+            with em_c2:
+                p_exp_y = st.selectbox("Expiry Year", list(range(2024, 2036)),
+                                        index=max(0, int(saved_exp_y) - 2024) if saved_exp_y else 2,
+                                        key="p1_expy")
+        with c3:
+            p_max_txn  = st.number_input("Max Transactions/Day", min_value=1, max_value=200,
+                                          value=int(saved_max_txn), key="p1_txn")
+            p_email    = st.text_input("Alert Email", value=user_email, key="p1_email")
+            p_acct     = st.text_input("Account Holder Name", value=saved_acct, key="p1_acct")
+
+        st.markdown("<div style='color:#a0998a;font-size:.78rem;margin-top:4px;'>"
+                    "⚠️ CVV and full card/account numbers are never stored — by design.</div>",
+                    unsafe_allow_html=True)
+
+        if st.button("💾 Save Profile", type="primary"):
+            profile_data = {
+                "full_name":            p_name,
+                "card_last4":           p_card4,
+                "registered_location":  p_location,
+                "daily_spend_limit":    p_spend,
+                "max_transactions_day": p_max_txn,
+                "email":                p_email,
+                "card_expiry_month":    p_exp_m,
+                "card_expiry_year":     p_exp_y,
+                "ifsc_code":            p_ifsc,
+                "account_name":         p_acct,
+            }
+            with st.spinner("Saving…"):
+                result = upsert_profile(access_token, user_id, profile_data)
+            if result["ok"]:
+                st.session_state["db_profile"] = result.get("profile", profile_data)
+                st.success(f"✅ Profile saved! Alerts will go to {p_email}")
+            else:
+                st.error(f"❌ Save failed: {result.get('error', '')}")
+
+    # Locked profile summary row
+    if db_profile:
+        pc1, pc2, pc3, pc4, pc5 = st.columns(5)
+        pc1.metric("👤 Name",        db_profile.get("full_name", "—"))
+        pc2.metric("📍 Location",    db_profile.get("registered_location", "—"))
+        pc3.metric("💰 Daily Limit", f"${db_profile.get('daily_spend_limit', 80):,.0f}")
+        pc4.metric("🔁 Max Txn/Day", db_profile.get("max_transactions_day", 10))
+        exp_m = db_profile.get("card_expiry_month")
+        exp_y = db_profile.get("card_expiry_year")
+        try:
+            expiry_str = f"{int(exp_m):02d}/{str(int(exp_y))[-2:]}" if exp_m and exp_y else "—"
+        except Exception:
+            expiry_str = "—"
+        pc5.metric("💳 Card Expiry", expiry_str)
+        if db_profile.get("ifsc_code"):
+            st.caption(f"🏦 IFSC: {db_profile.get('ifsc_code', '')}  ·  "
+                       f"Card: ****{db_profile.get('card_last4', 'XXXX')}")
+    else:
+        st.info("💡 Save your profile above — Panel 2 compares against it.")
+
+    st.markdown("---")
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    #  PANEL 2 — Active Attacker Session
+    #
+    #  TWO MODES depending on who is viewing:
+    #
+    #  MODE A (VICTIM's device) — Live monitoring ON
+    #    → Panel 2 is READ-ONLY, auto-populates from the latest Supabase session
+    #    → Shows what the attacker is doing in real time
+    #    → Email fires automatically, no button needed
+    #
+    #  MODE B (ATTACKER's device) — Live monitoring OFF
+    #    → Panel 2 is an INPUT FORM
+    #    → Attacker fills values, clicks "Process Transaction"
+    #    → Writes to Supabase with auto_submitted=True
+    #    → Victim's device picks this up within 8 seconds
+    # ═══════════════════════════════════════════════════════════════════════════
+    st.markdown("""
+    <div style="background:rgba(20,5,5,0.9);border:1px solid rgba(230,57,70,0.4);
+      border-radius:10px;padding:14px 20px;margin-bottom:12px;">
+      <span style="color:#e63946;font-size:1.1rem;font-weight:700;">⚡ Panel 2 — Active Session</span>
+      <span style="color:#a0998a;font-size:.85rem;margin-left:10px;">
+        When live monitoring is ON this auto-populates from the attacker's device.
+        When OFF, use this form to submit a transaction as the attacker.
+      </span>
+    </div>""", unsafe_allow_html=True)
+
+    live_session = st.session_state.get("attacker_session_live")
+    monitoring_on = st.session_state["realtime_enabled"]
+
+    # ── MODE A: Victim's view — read-only populated from Supabase ─────────────
+    if monitoring_on and live_session:
+        ts_display = live_session.get("timestamp", "")[:19].replace("T", " ")
+        flags_raw  = live_session.get("flags", "[]")
+        if isinstance(flags_raw, str):
+            try:
+                flags_raw = _json.loads(flags_raw)
+            except Exception:
+                flags_raw = []
+
+        st.markdown(f"""
+        <div style="background:rgba(30,5,5,0.95);border:1.5px solid #e63946;border-radius:10px;
+          padding:16px 22px;margin-bottom:12px;">
+          <div style="color:#e63946;font-size:1rem;font-weight:700;margin-bottom:10px;">
+            🔴 Attacker Session — Live Data from Supabase
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;">
+            <div>
+              <div style="color:#a0998a;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;">Location</div>
+              <div style="color:#e63946;font-size:1.1rem;font-weight:700;">{live_session.get('session_location','—')}</div>
+            </div>
+            <div>
+              <div style="color:#a0998a;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;">Amount</div>
+              <div style="color:#f5d060;font-size:1.1rem;font-weight:700;">${float(live_session.get('amount',0)):,.2f}</div>
+            </div>
+            <div>
+              <div style="color:#a0998a;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;"># Transactions</div>
+              <div style="color:#fff;font-size:1.1rem;font-weight:700;">{live_session.get('num_transactions','—')}</div>
+            </div>
+            <div>
+              <div style="color:#a0998a;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;">Merchant</div>
+              <div style="color:#fff;font-size:1.1rem;font-weight:700;">{live_session.get('merchant_type','—')}</div>
+            </div>
+          </div>
+          <div style="color:#555;font-size:.78rem;margin-top:10px;">Submitted at {ts_display} UTC</div>
+        </div>""", unsafe_allow_html=True)
+
+        # Show flags that were triggered
+        if flags_raw:
+            st.markdown("##### 🚨 Flags Triggered by This Session")
+            for f in flags_raw:
+                fc = {"Critical": "#e63946", "High": "#ff8c42",
+                      "Moderate": "#f5d060", "Low": "#2ec4b6"}.get(f.get("severity", "High"), "#f5d060")
+                fe = {"Critical": "🔴", "High": "🟠", "Moderate": "🟡", "Low": "🟢"}.get(f.get("severity", ""), "🟡")
+                st.markdown(
+                    f'<div style="background:rgba(20,20,20,0.9);border-left:4px solid {fc};'
+                    f'padding:10px 14px;border-radius:6px;margin-bottom:6px;">'
+                    f'<b style="color:{fc}">{fe} {f.get("check","—")} — {f.get("severity","—")}</b><br>'
+                    f'<span style="color:#a0998a;font-size:.88rem">{f.get("detail","")}</span></div>',
+                    unsafe_allow_html=True)
+        else:
+            st.success("✅ No flags triggered in the last attacker session.")
+
+    # ── MODE B: Input form (attacker's device OR victim testing manually) ──────
+    else:
+        if monitoring_on:
+            st.info("🔄 Live monitoring is ON and watching for attacker sessions. "
+                    "No new attacker session detected yet. Waiting…")
+
+        st.markdown("##### Submit a Transaction (Attacker's Device)")
+        st.caption("On the attacker's device, this form is filled and submitted. "
+                   "Your device picks it up within 8 seconds when live monitoring is ON.")
+
+        s1, s2, s3 = st.columns(3)
+        with s1:
+            session_location = st.text_input(
+                "Session Location", value="China", key="s2_loc",
+                help="Enter a location different from your registered location to trigger geographic alert")
+            merchant_type = st.selectbox(
+                "Merchant Type",
+                ["Normal", "Crypto Exchange", "Gambling", "Forex", "Electronics", "Luxury Goods"],
+                key="s2_merch")
+        with s2:
+            session_amount  = st.number_input("Transaction Amount ($)", min_value=0.01,
+                                               max_value=100000.0, value=500.0, key="s2_amt")
+            session_num_txn = st.number_input("Number of Transactions",
+                                               min_value=1, max_value=500, value=20, key="s2_ntxn")
+        with s3:
+            time_delta = st.number_input("Time Between Transactions (s)",
+                                          min_value=1, max_value=3600, value=85, key="s2_td")
+            avg_7d     = st.number_input("Avg Spend Last 7 Days ($)",
+                                          min_value=0.0, max_value=100000.0, value=400.0, key="s2_avg7d")
+
+        st.markdown("")
+        proc_col, _ = st.columns([1, 3])
+        with proc_col:
+            process_btn = st.button(
+                "🚨 Process Transaction",
+                type="primary",
+                use_container_width=True,
+                key="panel2_process")
+
+        if process_btn:
+            profile = db_profile if db_profile else {
+                "full_name":            st.session_state.get("user_name", "User"),
+                "registered_location":  "India",
+                "daily_spend_limit":    80,
+                "max_transactions_day": 10,
+                "email":                user_email,
+            }
+
+            # ── Run flag checks ────────────────────────────────────────────────
+            flags = []
+            registered_loc = profile.get("registered_location", "India")
+            daily_limit    = float(profile.get("daily_spend_limit", 80))
+            max_txn        = int(profile.get("max_transactions_day", 10))
+
+            if session_location.strip().lower() != registered_loc.strip().lower():
+                flags.append({"check": "Geographic Impossibility", "severity": "Critical",
+                              "detail": f"Transaction from {session_location} — registered location is {registered_loc}."})
+
+            spike_ratio = session_amount / max(daily_limit, 1)
+            if spike_ratio > 5:
+                flags.append({"check": "Spending Spike", "severity": "Critical",
+                              "detail": f"${session_amount:,.2f} is {spike_ratio:.1f}× your daily limit of ${daily_limit:,.0f}"})
+            elif spike_ratio > 2:
+                flags.append({"check": "Spending Spike", "severity": "High",
+                              "detail": f"${session_amount:,.2f} is {spike_ratio:.1f}× your daily limit"})
+            elif spike_ratio > 1.2:
+                flags.append({"check": "Spending Spike", "severity": "Moderate",
+                              "detail": f"${session_amount:,.2f} slightly exceeds your daily limit"})
+
+            velocity_ratio = session_num_txn / max(max_txn, 1)
+            if velocity_ratio > 3:
+                flags.append({"check": "Transaction Velocity", "severity": "Critical",
+                              "detail": f"{session_num_txn} transactions — {velocity_ratio:.1f}× your normal max of {max_txn}/day"})
+            elif velocity_ratio > 1.5:
+                flags.append({"check": "Transaction Velocity", "severity": "High",
+                              "detail": f"{session_num_txn} transactions exceeds your normal maximum"})
+            elif velocity_ratio > 1:
+                flags.append({"check": "Transaction Velocity", "severity": "Moderate",
+                              "detail": f"{session_num_txn} transactions slightly above your normal maximum"})
+
+            if merchant_type in ["Crypto Exchange", "Gambling", "Forex"]:
+                flags.append({"check": "High-Risk Merchant", "severity": "High",
+                              "detail": f"Transaction at {merchant_type} — high-risk merchant category"})
+
+            if time_delta > 160:
+                flags.append({"check": "Time Delta Anomaly", "severity": "High",
+                              "detail": f"{time_delta}s between transactions — exceeds 160s high-risk threshold"})
+            elif time_delta > 110:
+                flags.append({"check": "Time Delta Anomaly", "severity": "Moderate",
+                              "detail": f"{time_delta}s between transactions — moderate risk zone"})
+
+            # ── Log to Supabase (auto_submitted=True tells victim's device to auto-fire email) ──
+            session_data = {
+                "location":         session_location,
+                "amount":           session_amount,
+                "num_transactions": session_num_txn,
+                "merchant_type":    merchant_type,
+                "flagged":          len(flags) > 0,
+                "flags":            flags,
+            }
+
+            if access_token and user_id:
+                # Write to Supabase — victim's polling loop will pick this up
+                import requests as _req, json as _json2
+                from supabase_auth import DB_URL, _auth_headers
+                from datetime import datetime as _dt
+                payload = {
+                    "user_id":          user_id,
+                    "session_location": session_location,
+                    "amount":           float(session_amount),
+                    "num_transactions": int(session_num_txn),
+                    "merchant_type":    merchant_type,
+                    "flagged":          len(flags) > 0,
+                    "flags":            _json2.dumps(flags),
+                    "auto_submitted":   True,   # ← key flag: tells victim's device to auto-fire
+                    "timestamp":        _dt.utcnow().isoformat(),
+                }
+                _req.post(
+                    f"{DB_URL}/session_transactions",
+                    headers=_auth_headers(access_token),
+                    json=payload,
+                    timeout=10,
+                )
+
+            # ── Show results immediately on this device too ────────────────────
+            st.markdown("---")
+            if flags:
+                overall_sev = (
+                    "Critical" if any(f["severity"] == "Critical" for f in flags) else
+                    "High"     if any(f["severity"] == "High"     for f in flags) else
+                    "Moderate"
+                )
+                sev_color = {"Critical": "#e63946", "High": "#ff8c42",
+                             "Moderate": "#f5d060"}.get(overall_sev, "#f5d060")
+
                 st.markdown(f"""
-                <div style="background:rgba(20,20,20,0.9);border-left:4px solid {fc};
-                  border-radius:8px;padding:12px 16px;margin-bottom:8px;">
-                  <div style="color:{fc};font-weight:700;">{fe} {f['check']} — {f['severity']}</div>
-                  <div style="color:#a0998a;font-size:.9rem;margin-top:4px;">{f['detail']}</div>
+                <div style="background:rgba(30,5,5,0.95);border:2px solid {sev_color};
+                  border-radius:12px;padding:18px 24px;margin-bottom:16px;">
+                  <div style="color:{sev_color};font-size:1.3rem;font-weight:800;">
+                    🚨 {len(flags)} Threat{'s' if len(flags) > 1 else ''} Detected — {overall_sev} Risk
+                  </div>
+                  <div style="color:#a0998a;font-size:.9rem;margin-top:6px;">
+                    Transaction written to Supabase. Victim's device will receive the alert within 8 seconds
+                    if live monitoring is enabled.
+                  </div>
                 </div>""", unsafe_allow_html=True)
 
-            # ── Generate PDF + Send Email ────────────────────────────────────
-            st.markdown("---")
-            session_data = {
-                "location":        session_location,
-                "amount":          session_amount,
-                "num_transactions":session_num_txn,
-                "merchant_type":   merchant_type,
-                "flagged":         True,
-                "flags":           flags,
-            }
+                for f in flags:
+                    fc = {"Critical": "#e63946", "High": "#ff8c42",
+                          "Moderate": "#f5d060", "Low": "#2ec4b6"}.get(f["severity"], "#f5d060")
+                    fe = {"Critical": "🔴", "High": "🟠",
+                          "Moderate": "🟡", "Low": "🟢"}.get(f["severity"], "🟡")
+                    st.markdown(
+                        f'<div style="background:rgba(20,20,20,0.9);border-left:4px solid {fc};'
+                        f'padding:10px 14px;border-radius:6px;margin-bottom:6px;">'
+                        f'<b style="color:{fc}">{fe} {f["check"]} — {f["severity"]}</b><br>'
+                        f'<span style="color:#a0998a;font-size:.88rem">{f["detail"]}</span></div>',
+                        unsafe_allow_html=True)
 
-            # Build a simple auto_results list for the PDF
-            auto_results_for_pdf = [{
-                "id":          f["check"].lower().replace(" ","_"),
-                "name":        f["check"],
-                "category":    "Session Analysis",
-                "severity":    f["severity"],
-                "detail":      f["detail"],
-                "description": f["detail"],
-                "actions":     ["Review this transaction immediately.", "Freeze your card if you did not authorise it."],
-                "mode":        "Auto",
-            } for f in flags]
+                # Generate PDF for manual download on attacker's device too
+                alert_profile = {
+                    "name":                   profile.get("full_name", "User"),
+                    "card_last4":             profile.get("card_last4", "XXXX"),
+                    "baseline_daily_spend":   daily_limit,
+                    "normal_max_txn_per_day": max_txn,
+                    "email":                  profile.get("email", user_email),
+                    "registered_location":    registered_loc,
+                }
+                auto_results_pdf = [{
+                    "id":          f["check"].lower().replace(" ", "_"),
+                    "name":        f["check"],
+                    "category":    "Session Analysis",
+                    "severity":    f["severity"],
+                    "detail":      f["detail"],
+                    "description": f["detail"],
+                    "actions":     ["Review this transaction immediately.",
+                                   "Freeze your card if you did not authorise it."],
+                    "mode":        "Auto",
+                } for f in flags]
+                pdf_bytes = generate_card_report(alert_profile, auto_results_pdf, [], mode="auto")
 
-            alert_profile = {
-                "name":                 profile.get("full_name","User"),
-                "card_last4":           profile.get("card_last4","XXXX"),
-                "baseline_daily_spend": daily_limit,
-                "normal_max_txn_per_day": max_txn,
-                "email":                profile.get("email", user_email),
-                "registered_location":  registered_loc,
-            }
-            pdf_bytes = generate_card_report(alert_profile, auto_results_for_pdf, [], mode="auto")
-
-            dl_col, email_col = st.columns(2)
-            with dl_col:
                 st.download_button(
                     "📥 Download Alert Report (PDF)",
                     data=pdf_bytes,
@@ -1607,267 +1894,78 @@ elif menu == "🩺 Card Health Check":
                     mime="application/pdf",
                     type="primary",
                 )
-            with email_col:
-                alert_email = profile.get("email", user_email)
-                if st.button(f"📧 Send Alert to {alert_email}", type="primary"):
-                    with st.spinner("Sending alert email..."):
-                        result = send_fraud_alert(
-                            to_email     = alert_email,
-                            user_name    = profile.get("full_name","User"),
-                            flags        = flags,
-                            session_data = session_data,
-                            profile      = profile,
-                            pdf_bytes    = pdf_bytes,
-                        )
-                    if result["ok"]:
-                        st.success(f"✅ Alert email sent to {alert_email} with PDF attached!")
-                    else:
-                        st.error(f"❌ Email failed: {result.get('error','')}")
+                st.info("📧 The victim's device will auto-send the email alert when live monitoring detects this session.")
 
-            # Log to Supabase
-            if access_token and user_id:
-                log_session_transaction(access_token, user_id, session_data)
-                log_alert(access_token, user_id, {
-                    "type":        "account_takeover",
-                    "severity":    overall_sev,
-                    "title":       f"{len(flags)} threats detected from {session_location}",
-                    "description": "; ".join(f["detail"] for f in flags),
-                    "flags":       flags,
-                })
-
-        else:
-            st.success("✅ No threats detected — this session matches your registered profile.")
-            st.balloons()
-
-        # ── Session History ──────────────────────────────────────────────────
-        st.markdown("---")
-        st.markdown("#### 📋 Recent Session History (from your account)")
-        if access_token and user_id:
-            history = get_session_history(access_token, user_id, limit=10)
-            if history:
-                hist_df = pd.DataFrame(history)[["timestamp","session_location","amount","num_transactions","flagged"]]
-                hist_df.columns = ["Time","Location","Amount ($)","# Transactions","Flagged"]
-                hist_df["Flagged"] = hist_df["Flagged"].map({True:"🔴 Yes", False:"✅ No"})
-                st.dataframe(hist_df, use_container_width=True, hide_index=True)
             else:
-                st.info("No session history yet — process a transaction above to start logging.")
+                st.success("✅ No threats detected — this session matches the registered profile.")
+                st.balloons()
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    #  SESSION HISTORY
+    # ═══════════════════════════════════════════════════════════════════════════
+    st.markdown("---")
+    st.markdown("#### 📋 Recent Session History")
+    if access_token and user_id:
+        history = get_session_history(access_token, user_id, limit=10)
+        if history:
+            hist_df = pd.DataFrame(history)[
+                ["timestamp", "session_location", "amount", "num_transactions", "merchant_type", "flagged"]]
+            hist_df.columns = ["Time", "Location", "Amount ($)", "# Transactions", "Merchant", "Flagged"]
+            hist_df["Flagged"] = hist_df["Flagged"].map({True: "🔴 Yes", False: "✅ No"})
+            hist_df["Time"] = hist_df["Time"].str[:19].str.replace("T", " ")
+            st.dataframe(hist_df, use_container_width=True, hide_index=True)
         else:
-            st.info("Login to see your session history.")
+            st.info("No session history yet.")
+    else:
+        st.info("Login to see your session history.")
 
     st.markdown("---")
 
-    # ── Auto check from uploaded CSV ─────────────────────────────────────────
+    # ═══════════════════════════════════════════════════════════════════════════
+    #  AUTO CHECK FROM UPLOADED CSV (unchanged)
+    # ═══════════════════════════════════════════════════════════════════════════
     st.markdown("### 🤖 Automatic Check — From Uploaded Transactions")
     if "results_df" in st.session_state and st.session_state["results_df"] is not None:
-        txn_df       = st.session_state["results_df"]
+        txn_df = st.session_state["results_df"]
         profile_for_auto = db_profile if db_profile else {
             "name": "User", "card_last4": "XXXX",
             "baseline_daily_spend": 80, "normal_max_txn_per_day": 10,
         }
         auto_results = validator.run_auto_checks(txn_df, profile_for_auto)
         auto_overall = validator.overall_severity(auto_results)
-        auto_color   = {"Critical":"#e63946","High":"#ff8c42","Moderate":"#f5d060","Low":"#2ec4b6","Clear":"#2ec4b6"}.get(auto_overall,"#2ec4b6")
+        auto_color   = {
+            "Critical": "#e63946", "High": "#ff8c42",
+            "Moderate": "#f5d060", "Low": "#2ec4b6", "Clear": "#2ec4b6"
+        }.get(auto_overall, "#2ec4b6")
 
         col_a, col_b = st.columns([1, 3])
         with col_a:
-            st.metric("Auto Status",  f"{auto_overall}")
+            st.metric("Auto Status",  auto_overall)
             st.metric("Checks Run",   len(auto_results))
-            st.metric("Issues Found", len([r for r in auto_results if r["severity"] not in ("Clear","Low")]))
+            st.metric("Issues Found", len([r for r in auto_results if r["severity"] not in ("Clear", "Low")]))
         with col_b:
             for r in auto_results:
                 sev   = r["severity"]
-                emoji = {"Critical":"🔴","High":"🟠","Moderate":"🟡","Low":"🟢","Clear":"✅"}.get(sev,"✅")
-                color = {"Critical":"#e63946","High":"#ff8c42","Moderate":"#f5d060","Low":"#2ec4b6","Clear":"#2ec4b6"}.get(sev,"#2ec4b6")
+                emoji = {"Critical": "🔴", "High": "🟠", "Moderate": "🟡",
+                         "Low": "🟢", "Clear": "✅"}.get(sev, "✅")
+                color = {"Critical": "#e63946", "High": "#ff8c42", "Moderate": "#f5d060",
+                         "Low": "#2ec4b6", "Clear": "#2ec4b6"}.get(sev, "#2ec4b6")
                 st.markdown(
-                    f'<div style="background:rgba(20,20,20,0.8);border-left:3px solid {color};'                    f'padding:.5rem .8rem;border-radius:.4rem;margin-bottom:.4rem;">'                    f'<b style="color:{color}">{emoji} {r["name"]}</b> '                    f'<span style="color:#a0998a;font-size:.85rem"> — {r["detail"]}</span></div>',
-                    unsafe_allow_html=True
-                )
+                    f'<div style="background:rgba(20,20,20,0.8);border-left:3px solid {color};'
+                    f'padding:.5rem .8rem;border-radius:.4rem;margin-bottom:.4rem;">'
+                    f'<b style="color:{color}">{emoji} {r["name"]}</b> '
+                    f'<span style="color:#a0998a;font-size:.85rem"> — {r["detail"]}</span></div>',
+                    unsafe_allow_html=True)
 
         auto_pdf = generate_card_report(profile_for_auto, auto_results, [], mode="auto")
-        st.download_button("📥 Download Auto Check Report (PDF)", data=auto_pdf,
+        st.download_button(
+            "📥 Download Auto Check Report (PDF)",
+            data=auto_pdf,
             file_name=f"SecureGuard_Auto_{pd.Timestamp.now().strftime('%Y%m%d')}.pdf",
-            mime="application/pdf", type="primary")
+            mime="application/pdf",
+            type="primary")
     else:
         st.info("💡 Upload a CSV in **Real-time Detection** first for the auto check.")
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  TAB 7 — SECURITY & THREATS
-# ─────────────────────────────────────────────────────────────────────────────
-elif menu == "🔐 Security & Threats":
-    st.markdown("### 🔐 Security Architecture & Threat Modelling")
-    st.markdown(
-        "This tab documents how SecureGuard protects itself, your data, and how it defends "
-        "against adversarial attacks including fraudsters who know your detection thresholds."
-    )
-
-    tab_s1, tab_s2, tab_s3 = st.tabs(["🛡️ Model Security", "🎭 Adversarial Threats", "🔒 Platform Security"])
-
-    # ── Model Security ─────────────────────────────────────────────────────────
-    with tab_s1:
-        st.markdown("#### How We Protect the Model Itself")
-
-        measures = [
-            ("🔐 Model Serialization", "Pickle (joblib) with integrity hash",
-             "The trained model is saved as a binary pkl file. In production, we would use SHA-256 hash verification on load to detect tampered model files before serving any predictions."),
-            ("🎲 Threshold Obfuscation", "Thresholds not exposed in UI or API responses",
-             "Our risk thresholds (e.g. Amount > $2,000 = High Risk) are never returned in API responses. A fraudster cannot reverse-engineer them from the output alone — they only see the final risk label."),
-            ("🔄 Periodic Retraining", "Model drift detection + scheduled retraining",
-             "Fraud patterns shift over time. The Phase 2 roadmap includes automatic concept drift detection — if the fraud distribution changes significantly, the model retrains automatically on fresh data."),
-            ("📊 SHAP Explanation Limits", "Per-transaction only — no global weights exposed",
-             "SHAP explanations are generated per transaction for the fraud analyst. The global feature importance weights (which could help adversaries game the model) are never exposed via the public API."),
-            ("🧪 Input Validation", "All inputs sanitized before reaching the model",
-             "Every CSV upload is validated for correct dtypes, value ranges, and column presence before being passed to the model. Malformed inputs are rejected with a clear error message."),
-        ]
-
-        for icon_title, subtitle, desc in measures:
-            st.markdown(
-                f'<div style="background:rgba(20,20,20,0.85);border-left:3px solid #d4af37;'
-                f'padding:.7rem 1rem;border-radius:.5rem;margin-bottom:.6rem;">'
-                f'<b style="color:#d4af37">{icon_title}</b> '
-                f'<span style="color:#f5d060;font-size:.85rem"> — {subtitle}</span><br>'
-                f'<span style="color:#a0998a;font-size:.88rem">{desc}</span></div>',
-                unsafe_allow_html=True
-            )
-
-    # ── Adversarial Threats ────────────────────────────────────────────────────
-    with tab_s2:
-        st.markdown("#### Threat Modelling — How Fraudsters Try to Evade Detection")
-
-        st.markdown(
-            "##### 🎭 Threat 1 — Threshold Gaming (Adversarial Evasion)"
-        )
-        st.markdown(
-            "**Scenario:** A sophisticated fraudster knows (or guesses) our thresholds. "
-            "They keep Amount under \\$500, stay within 110s at the terminal, transact near home, "
-            "avoid high-risk merchants, and keep velocity low. They try to stay 'Safe' on every feature."
-        )
-
-        col1, col2 = st.columns(2)
-        with col1:
-            st.error(
-                "**Why this is hard to defend against with threshold rules alone:** \n\n"
-                "If someone is perfectly safe on all 6 features, a threshold-based system "
-                "cannot flag them. This is the fundamental weakness of rule-based fraud detection."
-            )
-        with col2:
-            st.success(
-                "**How our model defends against it:** \n\n"
-                "The stacking ensemble learned the joint distribution of features from thousands "
-                "of transactions. A transaction that is suspiciously 'too perfect' — all features "
-                "at exactly the safe boundary — is statistically unusual and can still be flagged "
-                "via the model's learned probability surface, even without any single threshold breach."
-            )
-
-        st.markdown("**Coordinated Evasion Detection — Live Check**")
-        st.markdown(
-            "If a transaction has ALL features in the safe zone but the model still assigns "
-            "moderate probability, we flag it as a potential **Coordinated Evasion Attempt**. "
-            "Upload a CSV in Real-time Detection to see this in action."
-        )
-
-        # Show example
-        with st.expander("📖 Example: What a coordinated evasion looks like"):
-            evasion_example = pd.DataFrame([{
-                "Amount":               490,
-                "Time_Delta":           108,
-                "Distance_From_Home":   48,
-                "Is_High_Risk_Merchant": 0,
-                "Avg_Spent_7D":         85,
-                "Velocity_Ratio":       1.9,
-                "Note": "Every feature is just under threshold — this pattern itself is suspicious"
-            }])
-            st.dataframe(evasion_example, use_container_width=True, hide_index=True)
-            st.warning(
-                "This transaction would be marked 'Safe' by a threshold-only system. "
-                "Our ensemble model flags it at ~38% fraud probability because the combination "
-                "of all features simultaneously at their upper-safe boundary is statistically rare "
-                "in genuine legitimate transactions."
-            )
-
-        st.markdown("---")
-        st.markdown("##### 🆘 Threat 2 — Stolen Card / Account Takeover")
-        st.markdown(
-            "**Scenario:** The real cardholder's card is stolen or account is hacked. "
-            "Transactions are being made by the fraudster — the real user has no idea."
-        )
-
-        threat2_cols = st.columns(3)
-        threats2 = [
-            ("📍 Geographic Signal", "The fraudster transacts far from the cardholder's home. Distance_From_Home flags this immediately — even one transaction at >150km triggers High Risk."),
-            ("⚡ Velocity Signal",   "A fraudster spending quickly before the card is cancelled creates an extreme Velocity_Ratio spike — often 20–50× the victim's normal daily spend."),
-            ("🏪 Merchant Signal",  "Fraudsters favour crypto exchanges and prepaid card vendors (to launder money quickly). Is_High_Risk_Merchant = 1 on these transactions."),
-        ]
-        for col, (title, desc) in zip(threat2_cols, threats2):
-            with col:
-                st.markdown(
-                    f'<div style="background:rgba(20,20,20,0.85);border:1px solid rgba(212,175,55,0.2);'
-                    f'padding:.8rem;border-radius:.6rem;height:160px">'
-                    f'<b style="color:#d4af37">{title}</b><br>'
-                    f'<span style="color:#a0998a;font-size:.87rem">{desc}</span></div>',
-                    unsafe_allow_html=True
-                )
-
-        st.markdown("")
-        st.info(
-            "**What the model does in real-time:** When the fraud model flags a High Risk transaction, "
-            "the Card Health auto-check also runs and generates a PDF report. In a production deployment, "
-            "this report would be emailed/WhatsApp'd to the registered cardholder immediately — "
-            "giving them the earliest possible warning of account compromise."
-        )
-
-    # ── Platform Security ──────────────────────────────────────────────────────
-    with tab_s3:
-        st.markdown("#### Platform & Data Security Measures")
-
-        platform_measures = [
-            ("🔑 No Raw Card Data Stored",
-             "SecureGuard never stores full card numbers, CVV codes, or PINs. "
-             "The system only ever processes the last 4 digits (for report identification) "
-             "and behavioral transaction features. Full PAN (Primary Account Number) never enters our system."),
-            ("🔒 Session-Only Data Storage",
-             "All transaction data, analysis results, and card profiles are stored only in Streamlit "
-             "st.session_state — they exist only for the current browser session and are permanently "
-             "discarded when the session ends. No database writes occur."),
-            ("🌐 HTTPS / TLS Encryption",
-             "In production deployment, all communication between the browser and the SecureGuard "
-             "server would be encrypted via TLS 1.3. Transaction CSVs are never transmitted in plaintext."),
-            ("🚦 Input Rate Limiting",
-             "The production API would implement rate limiting: maximum 100 requests/minute per IP, "
-             "with exponential backoff on repeated failures. This prevents brute-force attacks "
-             "against the prediction endpoint."),
-            ("🧹 Input Sanitization",
-             "All uploaded CSV files are validated for correct structure, column names, and data types "
-             "before reaching the model. Malicious file uploads (e.g. CSV injection, oversized files) "
-             "are rejected before processing begins."),
-            ("📋 Audit Logging",
-             "In production, every prediction request, model retrain event, and report generation "
-             "would be logged with timestamp, session ID (anonymized), and result. "
-             "This creates an audit trail for compliance (PCI-DSS, RBI guidelines)."),
-        ]
-
-        for title, desc in platform_measures:
-            st.markdown(
-                f'<div style="background:rgba(20,20,20,0.85);border-left:3px solid #2ec4b6;'
-                f'padding:.7rem 1rem;border-radius:.5rem;margin-bottom:.6rem;">'
-                f'<b style="color:#2ec4b6">{title}</b><br>'
-                f'<span style="color:#a0998a;font-size:.88rem">{desc}</span></div>',
-                unsafe_allow_html=True
-            )
-
-        st.markdown("---")
-        st.markdown("#### Compliance & Standards Alignment")
-        compliance_data = {
-            "Standard":     ["PCI-DSS", "RBI Guidelines (India)", "GDPR (EU)", "ISO 27001"],
-            "Relevance":    [
-                "Payment Card Industry Data Security Standard — governs how card data must be handled",
-                "Reserve Bank of India digital payment security guidelines",
-                "General Data Protection Regulation — no raw PII stored",
-                "Information Security Management — audit logging and access control",
-            ],
-            "Our Status":   ["Design-aligned ✅", "Design-aligned ✅", "Compliant ✅", "Roadmap 🔄"],
-        }
-        st.dataframe(pd.DataFrame(compliance_data), use_container_width=True, hide_index=True)
-
 # ─────────────────────────────────────────────────────────────────────────────
 #  TAB 8 — COMPARATIVE ANALYSIS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1894,7 +1992,7 @@ elif menu == "📑 Comparative Analysis":
 # ─────────────────────────────────────────────────────────────────────────────
 #  TAB 9 — SETTINGS
 # ─────────────────────────────────────────────────────────────────────────────
-elif menu == "⚙️ Settings":
+    elif menu == "⚙️ Settings":
     st.markdown("### ⚙️ System Configuration")
 
     col_a, col_b = st.columns(2)
