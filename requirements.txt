@@ -13,3 +13,4 @@ uvicorn
 python-docx
 pypdf
 reportlab
+requests
