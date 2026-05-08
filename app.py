@@ -1926,46 +1926,109 @@ elif menu == "🩺 Card Health Check":
     # ═══════════════════════════════════════════════════════════════════════════
     st.markdown("### 🤖 Automatic Check — From Uploaded Transactions")
     if "results_df" in st.session_state and st.session_state["results_df"] is not None:
-        txn_df = st.session_state["results_df"]
-        profile_for_auto = db_profile if db_profile else {
-            "name": "User", "card_last4": "XXXX",
-            "baseline_daily_spend": 80, "normal_max_txn_per_day": 10,
-        }
-        auto_results = validator.run_auto_checks(txn_df, profile_for_auto)
-        auto_overall = validator.overall_severity(auto_results)
-        auto_color   = {
-            "Critical": "#e63946", "High": "#ff8c42",
-            "Moderate": "#f5d060", "Low": "#2ec4b6", "Clear": "#2ec4b6"
-        }.get(auto_overall, "#2ec4b6")
+            txn_df = st.session_state["results_df"]
+            profile_for_auto = db_profile if db_profile else {
+                "name": "User", "card_last4": "XXXX",
+                "baseline_daily_spend": 80, "normal_max_txn_per_day": 10,
+            }
+            auto_results = validator.run_auto_checks(txn_df, profile_for_auto)
+            auto_overall = validator.overall_severity(auto_results)
+            auto_color   = {
+                "Critical": "#e63946", "High": "#ff8c42",
+                "Moderate": "#f5d060", "Low": "#2ec4b6", "Clear": "#2ec4b6"
+            }.get(auto_overall, "#2ec4b6")
 
-        col_a, col_b = st.columns([1, 3])
-        with col_a:
-            st.metric("Auto Status",  auto_overall)
-            st.metric("Checks Run",   len(auto_results))
-            st.metric("Issues Found", len([r for r in auto_results if r["severity"] not in ("Clear", "Low")]))
-        with col_b:
-            for r in auto_results:
-                sev   = r["severity"]
-                emoji = {"Critical": "🔴", "High": "🟠", "Moderate": "🟡",
-                         "Low": "🟢", "Clear": "✅"}.get(sev, "✅")
-                color = {"Critical": "#e63946", "High": "#ff8c42", "Moderate": "#f5d060",
-                         "Low": "#2ec4b6", "Clear": "#2ec4b6"}.get(sev, "#2ec4b6")
-                st.markdown(
-                    f'<div style="background:rgba(20,20,20,0.8);border-left:3px solid {color};'
-                    f'padding:.5rem .8rem;border-radius:.4rem;margin-bottom:.4rem;">'
-                    f'<b style="color:{color}">{emoji} {r["name"]}</b> '
-                    f'<span style="color:#a0998a;font-size:.85rem"> — {r["detail"]}</span></div>',
-                    unsafe_allow_html=True)
+            col_a, col_b = st.columns([1, 3])
+            with col_a:
+                st.metric("Auto Status",  auto_overall)
+                st.metric("Checks Run",   len(auto_results))
+                st.metric("Issues Found", len([r for r in auto_results if r["severity"] not in ("Clear", "Low")]))
+            with col_b:
+                for r in auto_results:
+                    sev   = r["severity"]
+                    emoji = {"Critical": "🔴", "High": "🟠", "Moderate": "🟡",
+                            "Low": "🟢", "Clear": "✅"}.get(sev, "✅")
+                    color = {"Critical": "#e63946", "High": "#ff8c42", "Moderate": "#f5d060",
+                            "Low": "#2ec4b6", "Clear": "#2ec4b6"}.get(sev, "#2ec4b6")
+                    st.markdown(
+                        f'<div style="background:rgba(20,20,20,0.8);border-left:3px solid {color};'
+                        f'padding:.5rem .8rem;border-radius:.4rem;margin-bottom:.4rem;">'
+                        f'<b style="color:{color}">{emoji} {r["name"]}</b> '
+                        f'<span style="color:#a0998a;font-size:.85rem"> — {r["detail"]}</span></div>',
+                        unsafe_allow_html=True)
 
-        auto_pdf = generate_card_report(profile_for_auto, auto_results, [], mode="auto")
-        st.download_button(
-            "📥 Download Auto Check Report (PDF)",
-            data=auto_pdf,
-            file_name=f"SecureGuard_Auto_{pd.Timestamp.now().strftime('%Y%m%d')}.pdf",
-            mime="application/pdf",
-            type="primary")
+            auto_pdf = generate_card_report(profile_for_auto, auto_results, [], mode="auto")
+            st.download_button(
+                "📥 Download Auto Check Report (PDF)",
+                data=auto_pdf,
+                file_name=f"SecureGuard_Auto_{pd.Timestamp.now().strftime('%Y%m%d')}.pdf",
+                mime="application/pdf",
+                type="primary")
     else:
         st.info("💡 Upload a CSV in **Real-time Detection** first for the auto check.")
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  TAB 7 — SECURITY & THREATS
+# ─────────────────────────────────────────────────────────────────────────────
+elif menu == "🔐 Security & Threats":
+    st.markdown("### 🔐 Security Architecture & Threat Modelling")
+    st.markdown("This tab documents how SecureGuard protects itself, your data, and defends against adversarial attacks.")
+
+    tab_s1, tab_s2, tab_s3 = st.tabs(["🛡️ Model Security", "🎭 Adversarial Threats", "🔒 Platform Security"])
+
+    with tab_s1:
+        st.markdown("#### How We Protect the Model Itself")
+        st.markdown("""
+        <div style="background:rgba(15,29,56,0.9);border:1px solid rgba(0,194,224,0.2);border-radius:10px;padding:1.2rem 1.5rem;margin-bottom:1rem;">
+        <b style="color:#00C2E0;">🔐 Threshold Obfuscation</b><br>
+        <span style="color:#94A3B8;">Our 6 domain-informed thresholds are stored as encrypted config — not visible in source code on deployment. An attacker cannot reverse-engineer the exact values needed to evade detection.</span>
+        </div>""", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background:rgba(15,29,56,0.9);border:1px solid rgba(0,194,224,0.2);border-radius:10px;padding:1.2rem 1.5rem;margin-bottom:1rem;">
+        <b style="color:#00C2E0;">🧠 SHAP Output Limiting</b><br>
+        <span style="color:#94A3B8;">Global SHAP feature importance is shown in the dashboard, but per-threshold SHAP values are capped — preventing a sophisticated attacker from using explainability outputs to calibrate evasion attempts.</span>
+        </div>""", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background:rgba(15,29,56,0.9);border:1px solid rgba(0,194,224,0.2);border-radius:10px;padding:1.2rem 1.5rem;margin-bottom:1rem;">
+        <b style="color:#00C2E0;">✅ Input Validation & Sanitisation</b><br>
+        <span style="color:#94A3B8;">All transaction inputs are validated against expected ranges before being passed to the model. Out-of-range values are flagged, not silently accepted — preventing injection-style attacks on the ML pipeline.</span>
+        </div>""", unsafe_allow_html=True)
+
+    with tab_s2:
+        st.markdown("#### Threats Users May Face")
+        st.markdown("""
+        <div style="background:rgba(30,5,5,0.9);border:1px solid rgba(230,57,70,0.3);border-radius:10px;padding:1.2rem 1.5rem;margin-bottom:1rem;">
+        <b style="color:#F43F5E;">🎭 Threat 1 — Adversarial Threshold Gaming</b><br>
+        <span style="color:#94A3B8;font-size:.9rem;">A sophisticated fraudster who knows our model's thresholds could deliberately stay just under each one — spending $499 (under $500 limit), completing in 109s (under 110s), staying near home. Each transaction looks safe alone.</span><br><br>
+        <b style="color:#F6C344;">Our Defence:</b> <span style="color:#94A3B8;font-size:.9rem;">Behavioural drift detection — if ALL 6 features are simultaneously "just under" threshold, that pattern itself becomes a Coordinated Evasion flag. Perfect scores across all features is statistically suspicious.</span>
+        </div>""", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="background:rgba(30,5,5,0.9);border:1px solid rgba(230,57,70,0.3);border-radius:10px;padding:1.2rem 1.5rem;margin-bottom:1rem;">
+        <b style="color:#F43F5E;">🔓 Threat 2 — Account Takeover (Stolen Credentials)</b><br>
+        <span style="color:#94A3B8;font-size:.9rem;">An attacker obtains your credentials and logs in from a different device and location. They make transactions that look normal in isolation but deviate from your registered behavioural baseline.</span><br><br>
+        <b style="color:#F6C344;">Our Defence:</b> <span style="color:#94A3B8;font-size:.9rem;">The Card Health Check tab detects geographic impossibility, velocity anomalies, and spending spikes against your registered profile — and fires an immediate email alert with PDF report.</span>
+        </div>""", unsafe_allow_html=True)
+
+    with tab_s3:
+        st.markdown("#### How We Protect the Platform")
+        cols = st.columns(2)
+        measures = [
+            ("🔑 Supabase RLS", "Row Level Security ensures every user can only access their own data — even if the API key is exposed, cross-user data access is impossible."),
+            ("🚫 No Raw PAN Storage", "Full card numbers and CVV are never stored anywhere in our system — only last 4 digits and expiry. PCI-DSS aligned by design."),
+            ("🔒 Session-only Secrets", "Credentials live in st.secrets (Streamlit Cloud) — never in source code. GitHub repo contains zero sensitive values."),
+            ("📊 Supabase Auth JWT", "All API calls are authenticated via short-lived JWT tokens issued by Supabase Auth — not static API keys passed in URLs."),
+            ("⚡ Rate Limiting", "Supabase's built-in rate limiting prevents brute-force attacks on the auth endpoint. Failed login attempts are throttled automatically."),
+            ("🛡️ HTTPS Only", "All traffic between the user, Streamlit Cloud, and Supabase is encrypted via TLS 1.3 — no plain HTTP endpoints exposed."),
+        ]
+        for i, (title, body) in enumerate(measures):
+            with cols[i % 2]:
+                st.markdown(f"""
+                <div style="background:rgba(15,29,56,0.9);border:1px solid rgba(0,194,224,0.15);
+                  border-radius:10px;padding:1rem 1.2rem;margin-bottom:.8rem;">
+                  <b style="color:#00C2E0;">{title}</b><br>
+                  <span style="color:#94A3B8;font-size:.88rem;">{body}</span>
+                </div>""", unsafe_allow_html=True)
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  TAB 8 — COMPARATIVE ANALYSIS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1992,7 +2055,7 @@ elif menu == "📑 Comparative Analysis":
 # ─────────────────────────────────────────────────────────────────────────────
 #  TAB 9 — SETTINGS
 # ─────────────────────────────────────────────────────────────────────────────
-    elif menu == "⚙️ Settings":
+elif menu == "⚙️ Settings":
     st.markdown("### ⚙️ System Configuration")
 
     col_a, col_b = st.columns(2)
