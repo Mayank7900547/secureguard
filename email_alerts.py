@@ -14,9 +14,14 @@ from email import encoders
 from datetime import datetime
 from typing import Optional
 
-# ── Gmail Config ───────────────────────────────────────────────────────────────
-GMAIL_ADDRESS  = "dahiyamayank059@gmail.com"
-GMAIL_APP_PASS = "rvuqiezytzyptyda"   # spaces removed
+# ── Gmail Config — reads from st.secrets (Streamlit Cloud) or falls back to hardcoded (local) ──
+try:
+    import streamlit as st
+    GMAIL_ADDRESS  = st.secrets["GMAIL_ADDRESS"]
+    GMAIL_APP_PASS = st.secrets["GMAIL_APP_PASS"]
+except Exception:
+    GMAIL_ADDRESS  = "dahiyamayank059@gmail.com"
+    GMAIL_APP_PASS = "rvuqiezytzyptyda"
 
 
 def _build_alert_html(user_name: str, flags: list[dict], session_data: dict, profile: dict) -> str:

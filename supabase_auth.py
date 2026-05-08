@@ -10,9 +10,14 @@ import json
 from datetime import datetime
 from typing import Optional
 
-# ── Config ─────────────────────────────────────────────────────────────────────
-SUPABASE_URL  = "https://jeesqtofaccdvztwgnhc.supabase.co"
-SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImplZXNxdG9mYWNjZHZ6dHdnbmhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNzg0MTgsImV4cCI6MjA5Mzc1NDQxOH0.xoij0Bdfd_F3BbRtlKXWDPmBg196k0gzl50NzZ-Q7PU"
+# ── Config — reads from st.secrets (Streamlit Cloud) or falls back to hardcoded (local) ──
+try:
+    import streamlit as st
+    SUPABASE_URL  = st.secrets["SUPABASE_URL"]
+    SUPABASE_ANON = st.secrets["SUPABASE_ANON"]
+except Exception:
+    SUPABASE_URL  = "https://jeesqtofaccdvztwgnhc.supabase.co"
+    SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImplZXNxdG9mYWNjZHZ6dHdnbmhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNzg0MTgsImV4cCI6MjA5Mzc1NDQxOH0.xoij0Bdfd_F3BbRtlKXWDPmBg196k0gzl50NzZ-Q7PU"
 
 AUTH_URL = f"{SUPABASE_URL}/auth/v1"
 DB_URL   = f"{SUPABASE_URL}/rest/v1"
