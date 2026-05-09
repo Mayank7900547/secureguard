@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from card_validator import CardValidator, generate_card_report
 from supabase_auth import sign_up, sign_in, sign_out, upsert_profile, get_profile, log_session_transaction, get_session_history, log_alert
 from email_alerts import send_fraud_alert, send_monthly_summary
-from monthly_report import generate_synthetic_transactions, generate_monthly_report
+from monthly_report import generate_synthetic_transactions, generate_monthly_report, generate_kaggle_fraud_report, prepare_kaggle_fraud_transactions
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  PAGE CONFIG
@@ -137,7 +137,7 @@ def _auth_gate():
             st.markdown("#### Welcome back")
             email    = st.text_input("Email", key="login_email", placeholder="you@example.com")
             password = st.text_input("Password", type="password", key="login_pass", placeholder="••••••••")
-            if st.button("Login →", type="primary", width='stretch'):
+            if st.button("Login →", type="primary", width="stretch"):
                 if email and password:
                     with st.spinner("Signing in..."):
                         result = sign_in(email, password)
@@ -190,7 +190,7 @@ def _auth_gate():
                                               value="India")
                 st.markdown("<div style='color:#a0998a;font-size:.78rem;margin-top:4px;'>⚠️ CVV and full card number are never stored — this is by design.</div>", unsafe_allow_html=True)
 
-            if st.button("Create Account →", type="primary", width='stretch'):
+            if st.button("Create Account →", type="primary", width="stretch"):
                 if not (full_name and reg_email and reg_pass):
                     st.warning("Please fill in at least name, email and password.")
                 elif reg_pass != reg_pass2:
@@ -242,7 +242,6 @@ def load_kaggle_engine():
     return KaggleFraudEngine()
 
 engine        = load_engine()
-import importlib, engine as eng_module; importlib.reload(eng_module)
 kaggle_engine = load_kaggle_engine()
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -277,7 +276,7 @@ with st.sidebar:
       <div style="color:#d4af37;font-weight:700;font-size:.95rem;">👤 {user_name}</div>
       <div style="color:#a0998a;font-size:.78rem;margin-top:2px;">{user_email}</div>
     </div>""", unsafe_allow_html=True)
-    if st.button("🚪 Logout", width='stretch'):
+    if st.button("🚪 Logout", width="stretch"):
         token = st.session_state.get("access_token","")
         if token:
             sign_out(token)
@@ -293,7 +292,7 @@ with st.sidebar:
                 data=f,
                 file_name="Fraud_Detection_System_Architecture.png",
                 mime="image/png",
-                width='stretch'
+                width="stretch"
             )
     except FileNotFoundError:
         pass
@@ -309,7 +308,7 @@ if not st.session_state["dashboard_entered"]:
     st.markdown(f"""
     <style>
     .stApp {{
-        background: url("file:///C:/Users/Mayank/.gemini/antigravity/brain/d8269b24-0eda-487a-b1f2-ee7fe12ff5c1/secureguard_hero_background_1778156246690.png");
+        background: url("https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop");
         background-size: cover;
         background-position: center;
         background-attachment: fixed;
@@ -370,7 +369,7 @@ if not st.session_state["dashboard_entered"]:
     
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        if st.button("ENTER SYSTEM", key="enter_btn", width='stretch'):
+        if st.button("ENTER SYSTEM", key="enter_btn", width="stretch"):
             st.session_state["dashboard_entered"] = True
             st.rerun()
     st.stop()
@@ -501,7 +500,7 @@ if menu == "📊 Overview":
         )
         fig_donut.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                  legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5))
-        st.plotly_chart(fig_donut, width='stretch')
+        st.plotly_chart(fig_donut, width="stretch")
 
     with col_dist2:
         st.markdown("<br><br>", unsafe_allow_html=True)
@@ -527,7 +526,7 @@ if menu == "📊 Overview":
     )
     fig_hist.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                            plot_bgcolor="rgba(0,0,0,0)")
-    st.plotly_chart(fig_hist, width='stretch')
+    st.plotly_chart(fig_hist, width="stretch")
 
     # ── Feature breakdown ─────────────────────────────────────────────────────
     st.markdown("### 🔬 Risk Breakdown by Feature")
@@ -543,7 +542,7 @@ if menu == "📊 Overview":
         )
         fig_amt.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                plot_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig_amt, width='stretch')
+        st.plotly_chart(fig_amt, width="stretch")
 
     with col_r:
         if "Time_Delta" in results_df.columns:
@@ -560,7 +559,7 @@ if menu == "📊 Overview":
                              annotation_text="High Risk (160s)")
             fig_td.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                    plot_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_td, width='stretch')
+            st.plotly_chart(fig_td, width="stretch")
         elif "Time" in results_df.columns:
             # Fallback to Time column for Kaggle dataset
             fig_td = px.histogram(
@@ -570,7 +569,7 @@ if menu == "📊 Overview":
             )
             fig_td.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                    plot_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_td, width='stretch')
+            st.plotly_chart(fig_td, width="stretch")
 
     # ── Feature reference table ───────────────────────────────────────────────
     st.markdown("### 📋 Feature Definitions & Risk Thresholds")
@@ -583,7 +582,7 @@ if menu == "📊 Overview":
         "High Risk Threshold": [
             "> $2,000","> 160 seconds","> 150 km","= 1 (always high)","—","> 5× avg spend"],
     }
-    st.dataframe(pd.DataFrame(ref_data), width='stretch', hide_index=True)
+    st.dataframe(pd.DataFrame(ref_data), width="stretch", hide_index=True)
 
     st.info("💡 **Note:** All metrics above are computed live by the SOTA Stacking Ensemble "
             "on a fresh synthetic batch. Every number reflects actual model output — nothing is hardcoded.")
@@ -628,24 +627,9 @@ The confidence score is the final verdict — not any individual bar.
     if mode == "📁 Upload CSV":
         uploaded = st.file_uploader("Drop CSV here (Kaggle creditcard.csv or behavioral format)", type="csv")
 
-        # Restore from session_state if file uploader reset due to tab switch
         if uploaded:
-            raw_df    = pd.read_csv(uploaded)
+            raw_df = pd.read_csv(uploaded)
             is_kaggle = "V1" in raw_df.columns
-            st.session_state["_uploaded_raw_df"]    = raw_df
-            st.session_state["_uploaded_is_kaggle"] = is_kaggle
-            if is_kaggle:
-                st.session_state["kaggle_raw_df"] = raw_df
-        elif "_uploaded_raw_df" in st.session_state:
-            raw_df    = st.session_state["_uploaded_raw_df"]
-            is_kaggle = st.session_state["_uploaded_is_kaggle"]
-            if is_kaggle:
-                st.session_state["kaggle_raw_df"] = raw_df
-            uploaded  = raw_df  # treat as truthy so the rest of the block runs
-
-        if uploaded is not None and "_uploaded_raw_df" in st.session_state:
-            raw_df    = st.session_state["_uploaded_raw_df"]
-            is_kaggle = st.session_state["_uploaded_is_kaggle"]
             fmt = "Kaggle (V1–V28)" if is_kaggle else "Behavioral"
             st.success(f"Format detected: **{fmt}** — {len(raw_df):,} transactions loaded.")
 
@@ -708,10 +692,9 @@ This only needs to be done once — the model is saved to disk.
                         display_cols = ["Class"] + display_cols
                     display_cols += kaggle_v_cols
 
-                    combined_display = combined[[c for c in display_cols if c in combined.columns]].copy()
-                    combined_display.insert(0, "CSV_Row / KGL ID", combined_display.index.map(lambda x: f"KGL{x:06d}"))
-                    st.dataframe(combined_display.reset_index(drop=True), width='stretch')
-                    st.caption("The CSV_Row / KGL ID column matches Txn IDs in the Monthly Report Kaggle mode.")
+                    st.dataframe(combined[[c for c in display_cols if c in combined.columns]
+                                         ].reset_index(drop=True),
+                                 width="stretch")
 
                     st.markdown("#### 📊 Fraud Probability — Top 50 Flagged")
                     top50 = fraud_df.nlargest(50, "Fraud_Probability").reset_index(drop=True)
@@ -722,7 +705,7 @@ This only needs to be done once — the model is saved to disk.
                                    title="Top 50 Transactions by Fraud Probability (Kaggle Model)")
                     fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                       plot_bgcolor="rgba(0,0,0,0)")
-                    st.plotly_chart(fig, width='stretch')
+                    st.plotly_chart(fig, width="stretch")
 
                     st.session_state["results_df"]  = results
                     st.session_state["is_kaggle"]   = True
@@ -765,7 +748,7 @@ This only needs to be done once — the model is saved to disk.
                     display_cols.insert(0, "Is_Fraud")
 
                 st.dataframe(combined[display_cols].reset_index(drop=True),
-                             width='stretch')
+                             width="stretch")
 
                 st.markdown("#### 📊 Fraud Probability — Top 50 Flagged")
                 top50 = fraud_df.nlargest(50, "Fraud_Probability").reset_index(drop=True)
@@ -776,7 +759,7 @@ This only needs to be done once — the model is saved to disk.
                                title="Top 50 Transactions by Fraud Probability")
                 fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                   plot_bgcolor="rgba(0,0,0,0)")
-                st.plotly_chart(fig, width='stretch')
+                st.plotly_chart(fig, width="stretch")
 
                 st.markdown("#### 🔬 Feature Risk Contribution in Flagged Transactions")
                 feat_risk_cols = [c for c in results.columns if c.endswith("_Risk")
@@ -802,7 +785,7 @@ This only needs to be done once — the model is saved to disk.
                     fig_rc.update_layout(template="plotly_dark",
                                          paper_bgcolor="rgba(0,0,0,0)",
                                          plot_bgcolor="rgba(0,0,0,0)")
-                    st.plotly_chart(fig_rc, width='stretch')
+                    st.plotly_chart(fig_rc, width="stretch")
 
                 st.session_state["results_df"] = results
                 st.session_state["is_kaggle"]  = False
@@ -862,11 +845,11 @@ This only needs to be done once — the model is saved to disk.
                 "Direction":     ["↑ Fraud" if v > 0 else "↓ Fraud" for v in sv],
             }
             feat_table = pd.DataFrame(feat_data)
-            st.dataframe(feat_table, width='stretch', hide_index=True)
+            st.dataframe(feat_table, width="stretch", hide_index=True)
 
             # SHAP chart
             st.markdown("#### 🧠 SHAP Explanation Chart")
-            st.image(shap_img, width='stretch')
+            st.image(shap_img, width="stretch")
 
             # Narrative
             st.markdown("#### 💬 Plain-English Confidence Explanation")
@@ -901,7 +884,7 @@ A value of -0.10 means it pulled the probability down by ~10 points.
         with st.spinner("Computing SHAP values across 300 transactions…"):
             global_img = engine.get_global_explanation()
         if global_img:
-            st.image(global_img, width='stretch')
+            st.image(global_img, width="stretch")
             st.success("Global Insight: The top drivers are typically **Velocity_Ratio** "
                        "(spending spike) and **Distance_From_Home** — matching published "
                        "fraud research (Dornadula 2019, Alarfaj 2022).")
@@ -924,7 +907,7 @@ A value of -0.10 means it pulled the probability down by ~10 points.
             "Sudden spending spike vs personal baseline",
         ]
     }
-    st.dataframe(pd.DataFrame(th_data), width='stretch', hide_index=True)
+    st.dataframe(pd.DataFrame(th_data), width="stretch", hide_index=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  TAB 4 — SCALING ANALYSIS
@@ -974,7 +957,7 @@ elif menu == "📈 Dataset Scaling Analysis":
                     progress_bar.progress(1.0, text="Analysis Complete!")
 
             st.dataframe(scaling_df.drop(columns=["Actual Size"]),
-                         width='stretch')
+                         width="stretch")
 
             c1, c2 = st.columns(2)
             with c1:
@@ -985,7 +968,7 @@ elif menu == "📈 Dataset Scaling Analysis":
                              barmode="stack")
                 fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                   plot_bgcolor="rgba(0,0,0,0)")
-                st.plotly_chart(fig, width='stretch')
+                st.plotly_chart(fig, width="stretch")
             with c2:
                 scaling_df["Time_Numeric"] = scaling_df["Processing Time"].str.replace("s","").astype(float)
                 fig2 = px.line(scaling_df, x="Dataset Size", y="Time_Numeric",
@@ -993,7 +976,7 @@ elif menu == "📈 Dataset Scaling Analysis":
                 fig2.update_traces(line_color="#d4af37")
                 fig2.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                    plot_bgcolor="rgba(0,0,0,0)")
-                st.plotly_chart(fig2, width='stretch')
+                st.plotly_chart(fig2, width="stretch")
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  TAB 5 — FRAUD TRANSACTION EXPLORER  (NEW)
@@ -1127,11 +1110,11 @@ elif menu == "🕵️ Fraud Transaction Explorer":
     # Only keep columns that actually exist (Kaggle data won't have behavioral cols)
     display_cols = [c for c in display_cols if c in top10.columns]
     
-    st.dataframe(top10[display_cols], width='stretch', hide_index=True)
+    st.dataframe(top10[display_cols], width="stretch", hide_index=True)
 
     # ── Full filtered table ───────────────────────────────────────────────────
     with st.expander(f"📂 View all {len(filtered):,} filtered transactions"):
-        st.dataframe(filtered[display_cols], width='stretch', hide_index=True)
+        st.dataframe(filtered[display_cols], width="stretch", hide_index=True)
 
     # ── Charts ────────────────────────────────────────────────────────────────
     if len(filtered) > 0:
@@ -1150,7 +1133,7 @@ elif menu == "🕵️ Fraud Transaction Explorer":
                                 hover_data=hover_cols)
             fig_sc.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                   plot_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_sc, width='stretch')
+            st.plotly_chart(fig_sc, width="stretch")
 
         with ch2:
             risk_counts = filtered["Risk_Level"].value_counts().reset_index()
@@ -1162,7 +1145,7 @@ elif menu == "🕵️ Fraud Transaction Explorer":
                              title="Risk Level Split in Filtered Set")
             fig_pie.update_layout(template="plotly_dark",
                                    paper_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_pie, width='stretch')
+            st.plotly_chart(fig_pie, width="stretch")
 
     # ── SHAP Explanation ──────────────────────────────────────────────────────
     st.markdown("---")
@@ -1264,10 +1247,10 @@ elif menu == "🕵️ Fraud Transaction Explorer":
                     "SHAP":      [f"{'+' if v>0 else ''}{v:.4f}" for v in sv],
                     "Direction": ["↑ Fraud" if v > 0 else "↓ Fraud" for v in sv],
                 })
-                st.dataframe(feat_table, width='stretch', hide_index=True)
+                st.dataframe(feat_table, width="stretch", hide_index=True)
 
             with right:
-                st.image(shap_img, width='stretch')
+                st.image(shap_img, width="stretch")
 
             # Plain-English narrative
             st.markdown("##### 💬 Plain-English Confidence Explanation")
@@ -1537,7 +1520,7 @@ elif menu == "🩺 Card Health Check":
             if st.session_state["realtime_enabled"]
             else "🔴 Enable Live Monitoring"
         )
-        if st.button(btn_label, width='stretch'):
+        if st.button(btn_label, width="stretch"):
             st.session_state["realtime_enabled"] = not st.session_state["realtime_enabled"]
             st.session_state["last_refresh_time"] = 0.0
             st.rerun()
@@ -1760,7 +1743,7 @@ elif menu == "🩺 Card Health Check":
             process_btn = st.button(
                 "🚨 Process Transaction",
                 type="primary",
-                width='stretch',
+                width="stretch",
                 key="panel2_process")
 
         if process_btn:
@@ -1931,7 +1914,7 @@ elif menu == "🩺 Card Health Check":
             hist_df.columns = ["Time", "Location", "Amount ($)", "# Transactions", "Merchant", "Flagged"]
             hist_df["Flagged"] = hist_df["Flagged"].map({True: "🔴 Yes", False: "✅ No"})
             hist_df["Time"] = hist_df["Time"].str[:19].str.replace("T", " ")
-            st.dataframe(hist_df, width='stretch', hide_index=True)
+            st.dataframe(hist_df, width="stretch", hide_index=True)
         else:
             st.info("No session history yet.")
     else:
@@ -1986,118 +1969,14 @@ elif menu == "🩺 Card Health Check":
             st.info("💡 Upload a CSV in **Real-time Detection** first for the auto check.")
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  TAB 7 — SECURITY & THREATS
-# ─────────────────────────────────────────────────────────────────────────────
-elif menu == "🔐 Security & Threats":
-    st.markdown("### 🔐 Security Architecture & Threat Modelling")
-    st.markdown(
-        "This tab documents how SecureGuard protects itself, your data, and how it defends "
-        "against adversarial attacks including fraudsters who know your detection thresholds."
-    )
-
-    tab_s1, tab_s2, tab_s3 = st.tabs(["🛡️ Model Security", "🎭 Adversarial Threats", "🔒 Platform Security"])
-
-    with tab_s1:
-        st.markdown("#### How We Protect the Model Itself")
-        measures = [
-            ("🔐 Model Serialization", "Pickle (joblib) with integrity hash",
-             "The trained model is saved as a binary pkl file. In production we verify a SHA-256 hash on load to detect tampered model files before serving predictions."),
-            ("🎲 Threshold Obfuscation", "Thresholds not exposed in UI or API responses",
-             "Our risk thresholds (e.g. Amount > $2,000 = High Risk) are never returned in API responses. A fraudster cannot reverse-engineer them from the output alone — they only see the final risk label."),
-            ("🔄 Periodic Retraining", "Model drift detection + scheduled retraining",
-             "Fraud patterns shift over time. The Phase 2 roadmap includes automatic concept drift detection — if the fraud distribution changes significantly, the model retrains automatically."),
-            ("📊 SHAP Explanation Limits", "Per-transaction only — no global weights exposed",
-             "SHAP explanations are generated per transaction for the fraud analyst. Global feature importance weights — which could help adversaries game the model — are never exposed via the public API."),
-            ("🧪 Input Validation", "All inputs sanitized before reaching the model",
-             "Every CSV upload is validated for correct dtypes, value ranges, and column presence. Malformed inputs are rejected with a clear error message."),
-        ]
-        for icon_title, subtitle, desc in measures:
-            st.markdown(f'<div style="background:rgba(20,20,20,0.85);border-left:3px solid #d4af37;padding:.7rem 1rem;border-radius:.5rem;margin-bottom:.6rem;"><b style="color:#d4af37">{icon_title}</b> <span style="color:#f5d060;font-size:.85rem"> — {subtitle}</span><br><span style="color:#a0998a;font-size:.88rem">{desc}</span></div>', unsafe_allow_html=True)
-
-    with tab_s2:
-        st.markdown("#### Threat Modelling — How Fraudsters Try to Evade Detection")
-        st.markdown("##### 🎭 Threat 1 — Threshold Gaming (Adversarial Evasion)")
-        st.markdown(
-            "**Scenario:** A sophisticated fraudster knows our thresholds. They keep Amount under $500, "
-            "stay within 110s, transact near home, avoid high-risk merchants, keep velocity low. "
-            "They try to stay 'Safe' on every feature."
-        )
-        col1, col2 = st.columns(2)
-        with col1:
-            st.error("**Why threshold rules fail:** If someone is perfectly safe on all 6 features, "
-                     "a threshold-based system cannot flag them. This is the fundamental weakness of rule-based fraud detection.")
-        with col2:
-            st.success("**How our model defends it:** The stacking ensemble learned the joint distribution "
-                       "of features. A transaction suspiciously 'too perfect' — all features at exactly the safe "
-                       "boundary — is statistically unusual and can still be flagged via the model's learned probability surface.")
-
-        st.markdown("**Example: Coordinated Evasion Attempt**")
-        evasion_example = pd.DataFrame([{
-            "Amount": 490, "Time_Delta": 108, "Distance_From_Home": 48,
-            "Is_High_Risk_Merchant": 0, "Avg_Spent_7D": 85, "Velocity_Ratio": 1.9,
-            "Note": "Every feature just under threshold — this pattern itself is suspicious"
-        }])
-        st.dataframe(evasion_example, width='stretch', hide_index=True)
-        st.warning("This transaction would be marked 'Safe' by a threshold-only system. Our ensemble flags it at ~38% fraud probability because all features simultaneously at their upper-safe boundary is statistically rare in genuine transactions.")
-
-        st.markdown("---")
-        st.markdown("##### 🆘 Threat 2 — Stolen Card / Account Takeover")
-        st.markdown("**Scenario:** The real cardholder's card is stolen or account hacked. Transactions are being made by the fraudster — the real user has no idea.")
-        threat2_cols = st.columns(3)
-        threats2 = [
-            ("📍 Geographic Signal", "The fraudster transacts far from the cardholder's home. Distance_From_Home flags this immediately — even one transaction at >150km triggers High Risk."),
-            ("⚡ Velocity Signal",   "A fraudster spending quickly before the card is cancelled creates an extreme Velocity_Ratio spike — often 20–50× the victim's normal daily spend."),
-            ("🏪 Merchant Signal",   "Fraudsters favour crypto exchanges and prepaid card vendors. Is_High_Risk_Merchant = 1 on these transactions."),
-        ]
-        for col, (title, desc) in zip(threat2_cols, threats2):
-            with col:
-                st.markdown(f'<div style="background:rgba(20,20,20,0.85);border:1px solid rgba(212,175,55,0.2);padding:.8rem;border-radius:.6rem;min-height:140px"><b style="color:#d4af37">{title}</b><br><span style="color:#a0998a;font-size:.87rem">{desc}</span></div>', unsafe_allow_html=True)
-
-        st.markdown("")
-        st.info("**What the model does in real-time:** When fraud is flagged, the Card Health auto-check runs and generates a PDF report. "
-                "In production this report is emailed to the registered cardholder immediately — giving the earliest possible warning.")
-
-    with tab_s3:
-        st.markdown("#### Platform & Data Security Measures")
-        platform_measures = [
-            ("🔑 No Raw Card Data Stored",
-             "SecureGuard never stores full card numbers, CVV codes, or PINs. Only last 4 digits (for report identification) and behavioral features. Full PAN never enters our system."),
-            ("🔒 Session-Only Data Storage",
-             "Transaction data and analysis results exist only in Streamlit session state for the current browser session. Permanently discarded when the session ends."),
-            ("🌐 HTTPS / TLS Encryption",
-             "In production all communication is encrypted via TLS 1.3. Transaction CSVs are never transmitted in plaintext."),
-            ("🚦 Input Rate Limiting",
-             "Production API would implement rate limiting: 100 requests/minute per IP, with exponential backoff on repeated failures. Prevents brute-force attacks."),
-            ("🧹 Input Sanitization",
-             "All uploaded CSV files are validated for correct structure, column names, and data types before reaching the model. Malicious uploads are rejected before processing."),
-            ("📋 Audit Logging",
-             "In production every prediction request, retrain event, and report generation would be logged with timestamp and session ID. Creates an audit trail for PCI-DSS compliance."),
-        ]
-        for title, desc in platform_measures:
-            st.markdown(f'<div style="background:rgba(20,20,20,0.85);border-left:3px solid #2ec4b6;padding:.7rem 1rem;border-radius:.5rem;margin-bottom:.6rem;"><b style="color:#2ec4b6">{title}</b><br><span style="color:#a0998a;font-size:.88rem">{desc}</span></div>', unsafe_allow_html=True)
-
-        st.markdown("---")
-        st.markdown("#### Compliance & Standards Alignment")
-        compliance_data = {
-            "Standard":   ["PCI-DSS","RBI Guidelines (India)","GDPR (EU)","ISO 27001"],
-            "Relevance":  ["Payment Card Industry Data Security Standard — governs card data handling",
-                           "Reserve Bank of India digital payment security guidelines",
-                           "General Data Protection Regulation — no raw PII stored",
-                           "Information Security Management — audit logging and access control"],
-            "Our Status": ["Design-aligned ✅","Design-aligned ✅","Compliant ✅","Roadmap 🔄"],
-        }
-        st.dataframe(pd.DataFrame(compliance_data), width='stretch', hide_index=True)
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  TAB 8 — MONTHLY REPORT  (Kaggle toggle + auto-send on generate)
+#  TAB 8 — MONTHLY SUMMARY REPORT
 # ─────────────────────────────────────────────────────────────────────────────
 elif menu == "📋 Monthly Report":
     st.markdown("### 📋 Monthly Transaction Summary Report")
     st.markdown(
-        "Generate a comprehensive **15-day or 30-day summary report**. "
-        "Choose between **Synthetic User Data** (what the product looks like in production) "
-        "or **Real Kaggle Fraud Cases** (actual flagged transactions from your uploaded dataset — proves the data is real). "
-        "The PDF is **automatically emailed** to your registered address the moment you click Generate."
+        "Generate a comprehensive **15-day summary report** of card activity. "
+        "Choose between **real Kaggle fraud cases** for demo credibility, "
+        "or **synthetic user data** to show what a normal cardholder's report looks like."
     )
 
     access_token = st.session_state.get("access_token", "")
@@ -2108,158 +1987,164 @@ elif menu == "📋 Monthly Report":
         st.warning("💡 Please save your profile in **Card Health Check → Panel 1** first.")
         st.stop()
 
+    # ── Report Type Toggle ────────────────────────────────────────────────────
+    st.markdown("---")
+    report_type = st.radio(
+        "📂 Report Data Source",
+        ["🔴 Real Fraud Cases (Kaggle Dataset)", "🟢 Synthetic User Data"],
+        horizontal=True,
+        help="Real Fraud Cases pulls from the actual 492 confirmed fraud transactions in the uploaded dataset. Synthetic generates realistic user transaction history."
+    )
     st.markdown("---")
 
-    # ── Data source toggle ────────────────────────────────────────────────────
-    report_type = st.radio(
-        "Data Source",
-        ["🧪 Synthetic User Data", "📊 Real Kaggle Fraud Cases"],
-        horizontal=True,
-        help="Synthetic = realistic simulation of a real user's 15 days. Kaggle = real fraud cases from creditcard.csv."
-    )
-
-    kaggle_available = "kaggle_raw_df" in st.session_state
-
-    if report_type == "📊 Real Kaggle Fraud Cases":
-        if not kaggle_available:
-            st.warning("⚠️ No Kaggle CSV uploaded yet. Go to **Real-time Detection → Upload CSV** and upload creditcard.csv first, then come back here.")
-            st.stop()
-        st.info(
-            "📊 This report pulls real transactions from the **actual 492 fraud cases** in your uploaded creditcard.csv. "
-            "The Txn IDs (KGL######) map directly to row indices in the Real-time Detection table — cross-reference them live to prove the data is real."
-        )
-
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
-        period_days = st.selectbox("Report Period", [15, 30], format_func=lambda x: f"Last {x} Days")
-    with col2:
-        if report_type == "🧪 Synthetic User Data":
+        if "Synthetic" in report_type:
+            period_days = st.selectbox("Report Period", [15, 30], format_func=lambda x: f"Last {x} Days")
             fraud_count = st.slider("Fraud Incidents to Simulate", 0, 10, 3)
         else:
-            fraud_count = st.slider("Fraud Cases to Include (from 492)", 5, 20, 15)
+            n_sample    = st.slider("Number of Fraud Cases to Include", 5, 20, 15)
+            period_days = 15
+    with col2:
+        send_email = st.checkbox("📧 Email report to me", value=True)
+    with col3:
+        st.markdown("")
 
-    st.markdown("---")
+    # ── Profile preview ───────────────────────────────────────────────────────
+    st.markdown("#### 👤 Report generated for:")
     pc1, pc2, pc3, pc4 = st.columns(4)
     pc1.metric("Name",        db_profile.get("full_name", "—"))
     pc2.metric("Card",        f"****{db_profile.get('card_last4','XXXX')}")
     pc3.metric("Location",    db_profile.get("registered_location", "—"))
     pc4.metric("Daily Limit", f"${db_profile.get('daily_spend_limit', 80):,.0f}")
 
-    alert_email = db_profile.get("email", "")
-    if alert_email:
-        st.info(f"📧 Report will be **auto-emailed to {alert_email}** when you click Generate — no separate send button needed.")
+    # ── Source info box ───────────────────────────────────────────────────────
+    if "Real Fraud" in report_type:
+        st.markdown("""
+        <div style="background:rgba(30,5,5,0.9);border:1px solid rgba(230,57,70,0.4);
+          border-radius:8px;padding:12px 16px;margin:8px 0;">
+          <b style="color:#e63946;">🔴 Real Kaggle Fraud Cases</b><br>
+          <span style="color:#a0998a;font-size:.88rem;">
+          Transactions are pulled from the actual 492 confirmed fraud cases in creditcard.csv.
+          Transaction IDs (KGLxxxxxx) can be cross-referenced with the Real-time Detection tab.
+          Upload your CSV in Real-time Detection first for this to work.
+          </span>
+        </div>""", unsafe_allow_html=True)
     else:
-        st.warning("⚠️ No alert email saved in your profile. Report will be generated but not emailed. Save an email in Card Health → Panel 1 first.")
+        st.markdown("""
+        <div style="background:rgba(5,20,15,0.9);border:1px solid rgba(46,196,182,0.4);
+          border-radius:8px;padding:12px 16px;margin:8px 0;">
+          <b style="color:#2ec4b6;">🟢 Synthetic User Data</b><br>
+          <span style="color:#a0998a;font-size:.88rem;">
+          Realistic transaction history generated based on your registered profile —
+          daily spend limit, transaction frequency, and home location.
+          Mix of safe, moderate, and flagged transactions.
+          </span>
+        </div>""", unsafe_allow_html=True)
 
-    if st.button("📊 Generate & Send Report", type="primary", width='stretch'):
-        period_label = f"Last {period_days} Days"
+    st.markdown("")
 
-        if report_type == "🧪 Synthetic User Data":
-            with st.spinner("Generating synthetic transaction history and building PDF…"):
-                txn_df    = generate_synthetic_transactions(profile=db_profile, days=period_days, fraud_count=fraud_count)
-                pdf_bytes = generate_monthly_report(db_profile, txn_df, period=period_label)
-            data_label = "Synthetic"
+    if st.button("📊 Generate Report", type="primary", width="stretch"):
 
-        else:
-            # ── Real Kaggle fraud cases ───────────────────────────────────────
-            with st.spinner("Pulling real fraud cases from Kaggle dataset and building PDF…"):
-                import random as _random
-                _random.seed(42)
-                raw_kaggle = st.session_state["kaggle_raw_df"]
-                fraud_rows = raw_kaggle[raw_kaggle["Class"] == 1].copy()
-                sample_n   = min(fraud_count, len(fraud_rows))
-                sampled    = fraud_rows.sample(n=sample_n, random_state=42)  # preserve original CSV index for KGL IDs
+        if "Real Fraud" in report_type:
+            # ── VERSION A: Real Kaggle fraud cases ────────────────────────────
+            uploaded_df = st.session_state.get("uploaded_df", None)
+            if uploaded_df is None:
+                st.error("❌ No CSV uploaded. Please upload your creditcard.csv in the **Real-time Detection** tab first.")
+                st.stop()
 
-                txn_rows = []
-                for i, row in sampled.iterrows():
-                    ts = pd.Timestamp.now() - pd.Timedelta(
-                        days=_random.randint(0, period_days - 1),
-                        hours=_random.randint(0, 23),
-                        minutes=_random.randint(0, 59)
+            with st.spinner("Extracting real fraud cases and building report..."):
+                try:
+                    txn_df, pdf_bytes = generate_kaggle_fraud_report(
+                        profile  = db_profile,
+                        df_full  = uploaded_df,
+                        n_sample = n_sample,
+                        period   = f"Last 15 Days — {n_sample} Real Fraud Cases",
                     )
-                    amount   = float(row["Amount"])
-                    merchant = "Crypto Exchange" if row.get("V3", 0) < -2 else _random.choice(["Online Shopping", "Electronics", "Unknown Vendor"])
-                    location = _random.choice(["Dubai", "London", "Lagos", "Moscow", "Unknown"])
-                    txn_rows.append({
-                        "txn_id":      f"KGL{row.name:06d}",
-                        "timestamp":   ts,
-                        "date":        ts.strftime("%d %b %Y"),
-                        "time":        ts.strftime("%H:%M"),
-                        "merchant":    merchant,
-                        "location":    location,
-                        "amount":      round(amount, 2),
-                        "time_delta":  _random.randint(161, 380),
-                        "risk_level":  "High Risk",
-                        "flagged":     True,
-                        "flag_reason": f"Real Kaggle fraud (Class=1) · V1={row.get('V1',0):.2f} · V3={row.get('V3',0):.2f} · Amount=${amount:.2f}",
-                    })
+                    period_label = f"Kaggle Fraud Cases ({n_sample} transactions)"
+                    is_kaggle    = True
+                except Exception as e:
+                    st.error(f"❌ Failed to generate report: {e}")
+                    st.stop()
 
-                txn_df    = pd.DataFrame(txn_rows).sort_values("timestamp").reset_index(drop=True)
-                pdf_bytes = generate_monthly_report(db_profile, txn_df, period=f"{period_label} — Real Kaggle Fraud Cases")
-            data_label = "Kaggle"
-
-        # ── Auto-send email immediately ───────────────────────────────────────
-        email_sent = False
-        if alert_email:
-            with st.spinner(f"Auto-sending report to {alert_email}…"):
-                email_result = send_monthly_summary(
-                    to_email  = alert_email,
-                    user_name = db_profile.get("full_name", "User"),
-                    pdf_bytes = pdf_bytes,
-                    period    = period_label,
-                )
-            if email_result["ok"]:
-                st.success(f"✅ {data_label} report generated and **emailed to {alert_email}** automatically!")
-                email_sent = True
-            else:
-                st.warning(f"⚠️ Report generated but email failed: {email_result.get('error','')}")
         else:
-            st.success(f"✅ {data_label} report generated — {len(txn_df)} transactions, {txn_df['flagged'].sum()} flagged")
+            # ── VERSION B: Synthetic user data ────────────────────────────────
+            with st.spinner("Generating synthetic transaction history and building PDF..."):
+                txn_df = generate_synthetic_transactions(
+                    profile     = db_profile,
+                    days        = period_days,
+                    fraud_count = fraud_count,
+                )
+                period_label = f"Last {period_days} Days"
+                pdf_bytes    = generate_monthly_report(db_profile, txn_df, period=period_label)
+                is_kaggle    = False
+
+        flag_count = txn_df["flagged"].sum() if "flagged" in txn_df.columns else len(txn_df)
+        st.success(f"✅ Report generated — {len(txn_df)} transactions, {flag_count} flagged")
 
         # ── Transaction preview ───────────────────────────────────────────────
         st.markdown("#### 📋 Transaction Preview")
-        flagged_df = txn_df[txn_df["flagged"] == True]
-        safe_df    = txn_df[txn_df["flagged"] == False]
+        display_cols = [c for c in ["txn_id","date","time","merchant","location","amount","risk_level","flagged"] if c in txn_df.columns]
 
-        tab_all, tab_flagged, tab_safe = st.tabs([
-            f"All ({len(txn_df)})",
-            f"🔴 Flagged ({len(flagged_df)})",
-            f"✅ Safe ({len(safe_df)})",
-        ])
-        display_cols = ["txn_id", "date", "time", "merchant", "location", "amount", "risk_level"]
-        with tab_all:
-            st.dataframe(txn_df[display_cols], width='stretch', hide_index=True)
-        with tab_flagged:
-            if len(flagged_df):
-                st.dataframe(flagged_df[display_cols], width='stretch', hide_index=True)
-            else:
-                st.success("No flagged transactions!")
-        with tab_safe:
-            st.dataframe(safe_df[display_cols], width='stretch', hide_index=True)
-
-        if report_type == "📊 Real Kaggle Fraud Cases":
-            st.info(
-                "💡 **Cross-reference proof:** The Txn IDs above (KGL######) map directly to row indices "
-                "in your uploaded creditcard.csv. Go to Real-time Detection — those exact rows will show "
-                "as High Risk in the flagged table. That's your live verification to the panel."
-            )
+        if is_kaggle:
+            st.dataframe(txn_df[display_cols], width="stretch", hide_index=True)
+            st.caption("💡 These are REAL fraud transactions from the Kaggle dataset. Cross-reference the KGLxxxxxx IDs in Real-time Detection.")
+        else:
+            flagged_df = txn_df[txn_df["flagged"] == True]
+            safe_df    = txn_df[txn_df["flagged"] == False]
+            tab_all, tab_flagged, tab_safe = st.tabs([
+                f"All ({len(txn_df)})",
+                f"🔴 Flagged ({len(flagged_df)})",
+                f"✅ Safe ({len(safe_df)})",
+            ])
+            with tab_all:
+                st.dataframe(txn_df[display_cols], width="stretch", hide_index=True)
+            with tab_flagged:
+                if len(flagged_df):
+                    st.dataframe(flagged_df[display_cols], width="stretch", hide_index=True)
+                else:
+                    st.success("No flagged transactions!")
+            with tab_safe:
+                st.dataframe(safe_df[display_cols], width="stretch", hide_index=True)
 
         # ── Stats ─────────────────────────────────────────────────────────────
+        st.markdown("#### 📊 Quick Stats")
         s1, s2, s3, s4 = st.columns(4)
         s1.metric("Total Spend",     f"${txn_df['amount'].sum():,.2f}")
-        s2.metric("Avg Transaction", f"${txn_df['amount'].mean():,.2f}")
+        s2.metric("Avg Transaction",  f"${txn_df['amount'].mean():,.2f}")
         s3.metric("Largest Txn",     f"${txn_df['amount'].max():,.2f}")
-        s4.metric("Flag Rate",       f"{txn_df['flagged'].mean()*100:.1f}%")
+        s4.metric("Flagged",         str(flag_count))
 
         st.markdown("---")
-        st.download_button(
-            "📥 Download PDF Report",
-            data      = pdf_bytes,
-            file_name = f"SecureGuard_Monthly_{data_label}_{pd.Timestamp.now().strftime('%Y%m%d')}.pdf",
-            mime      = "application/pdf",
-            type      = "primary",
-            width='stretch',
-        )
+
+        # ── Download + Email ──────────────────────────────────────────────────
+        dl_col, em_col = st.columns(2)
+        with dl_col:
+            st.download_button(
+                "📥 Download PDF Report",
+                data      = pdf_bytes,
+                file_name = f"SecureGuard_{'Kaggle' if is_kaggle else 'Monthly'}_{pd.Timestamp.now().strftime('%Y%m%d')}.pdf",
+                mime      = "application/pdf",
+                type      = "primary",
+                width = "stretch",
+            )
+        with em_col:
+            alert_email = db_profile.get("email", "")
+            if send_email and alert_email:
+                if st.button(f"📧 Send to {alert_email}", type="primary", width="stretch"):
+                    with st.spinner("Sending email..."):
+                        result = send_monthly_summary(
+                            to_email  = alert_email,
+                            user_name = db_profile.get("full_name", "User"),
+                            pdf_bytes = pdf_bytes,
+                            period    = period_label,
+                        )
+                    if result["ok"]:
+                        st.success(f"✅ Report emailed to {alert_email}!")
+                    else:
+                        st.error(f"❌ Email failed: {result.get('error','')}")
+            else:
+                st.info("Enable 'Email report to me' and ensure your profile has an alert email.")
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  TAB 8 — COMPARATIVE ANALYSIS
@@ -2321,7 +2206,7 @@ elif menu == "⚙️ Settings":
                                color_continuous_scale="Blues")
             fig_cm.update_traces(text=text_labels, texttemplate="%{text}")
             fig_cm.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_cm, width='stretch')
+            st.plotly_chart(fig_cm, width="stretch")
 
     with col_b:
         st.warning("#### Risk Threshold Reference")
@@ -2373,7 +2258,7 @@ elif menu == "⚙️ Settings":
                            color_continuous_scale="Blues")
         fig_cm.update_traces(text=text_labels, texttemplate="%{text}")
         fig_cm.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig_cm, width='stretch')
+        st.plotly_chart(fig_cm, width="stretch")
         st.cache_resource.clear()
 
 # ─────────────────────────────────────────────────────────────────────────────
