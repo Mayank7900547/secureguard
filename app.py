@@ -137,7 +137,7 @@ def _auth_gate():
             st.markdown("#### Welcome back")
             email    = st.text_input("Email", key="login_email", placeholder="you@example.com")
             password = st.text_input("Password", type="password", key="login_pass", placeholder="••••••••")
-            if st.button("Login →", type="primary", use_container_width=True):
+            if st.button("Login →", type="primary", width='stretch'):
                 if email and password:
                     with st.spinner("Signing in..."):
                         result = sign_in(email, password)
@@ -190,7 +190,7 @@ def _auth_gate():
                                               value="India")
                 st.markdown("<div style='color:#a0998a;font-size:.78rem;margin-top:4px;'>⚠️ CVV and full card number are never stored — this is by design.</div>", unsafe_allow_html=True)
 
-            if st.button("Create Account →", type="primary", use_container_width=True):
+            if st.button("Create Account →", type="primary", width='stretch'):
                 if not (full_name and reg_email and reg_pass):
                     st.warning("Please fill in at least name, email and password.")
                 elif reg_pass != reg_pass2:
@@ -277,7 +277,7 @@ with st.sidebar:
       <div style="color:#d4af37;font-weight:700;font-size:.95rem;">👤 {user_name}</div>
       <div style="color:#a0998a;font-size:.78rem;margin-top:2px;">{user_email}</div>
     </div>""", unsafe_allow_html=True)
-    if st.button("🚪 Logout", use_container_width=True):
+    if st.button("🚪 Logout", width='stretch'):
         token = st.session_state.get("access_token","")
         if token:
             sign_out(token)
@@ -293,7 +293,7 @@ with st.sidebar:
                 data=f,
                 file_name="Fraud_Detection_System_Architecture.png",
                 mime="image/png",
-                use_container_width=True
+                width='stretch'
             )
     except FileNotFoundError:
         pass
@@ -370,7 +370,7 @@ if not st.session_state["dashboard_entered"]:
     
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        if st.button("ENTER SYSTEM", key="enter_btn", use_container_width=True):
+        if st.button("ENTER SYSTEM", key="enter_btn", width='stretch'):
             st.session_state["dashboard_entered"] = True
             st.rerun()
     st.stop()
@@ -501,7 +501,7 @@ if menu == "📊 Overview":
         )
         fig_donut.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                  legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5))
-        st.plotly_chart(fig_donut, use_container_width=True)
+        st.plotly_chart(fig_donut, width='stretch')
 
     with col_dist2:
         st.markdown("<br><br>", unsafe_allow_html=True)
@@ -527,7 +527,7 @@ if menu == "📊 Overview":
     )
     fig_hist.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                            plot_bgcolor="rgba(0,0,0,0)")
-    st.plotly_chart(fig_hist, use_container_width=True)
+    st.plotly_chart(fig_hist, width='stretch')
 
     # ── Feature breakdown ─────────────────────────────────────────────────────
     st.markdown("### 🔬 Risk Breakdown by Feature")
@@ -543,7 +543,7 @@ if menu == "📊 Overview":
         )
         fig_amt.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                plot_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig_amt, use_container_width=True)
+        st.plotly_chart(fig_amt, width='stretch')
 
     with col_r:
         if "Time_Delta" in results_df.columns:
@@ -560,7 +560,7 @@ if menu == "📊 Overview":
                              annotation_text="High Risk (160s)")
             fig_td.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                    plot_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_td, use_container_width=True)
+            st.plotly_chart(fig_td, width='stretch')
         elif "Time" in results_df.columns:
             # Fallback to Time column for Kaggle dataset
             fig_td = px.histogram(
@@ -570,7 +570,7 @@ if menu == "📊 Overview":
             )
             fig_td.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                    plot_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_td, use_container_width=True)
+            st.plotly_chart(fig_td, width='stretch')
 
     # ── Feature reference table ───────────────────────────────────────────────
     st.markdown("### 📋 Feature Definitions & Risk Thresholds")
@@ -583,7 +583,7 @@ if menu == "📊 Overview":
         "High Risk Threshold": [
             "> $2,000","> 160 seconds","> 150 km","= 1 (always high)","—","> 5× avg spend"],
     }
-    st.dataframe(pd.DataFrame(ref_data), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(ref_data), width='stretch', hide_index=True)
 
     st.info("💡 **Note:** All metrics above are computed live by the SOTA Stacking Ensemble "
             "on a fresh synthetic batch. Every number reflects actual model output — nothing is hardcoded.")
@@ -710,7 +710,7 @@ This only needs to be done once — the model is saved to disk.
 
                     combined_display = combined[[c for c in display_cols if c in combined.columns]].copy()
                     combined_display.insert(0, "CSV_Row / KGL ID", combined_display.index.map(lambda x: f"KGL{x:06d}"))
-                    st.dataframe(combined_display.reset_index(drop=True), use_container_width=True)
+                    st.dataframe(combined_display.reset_index(drop=True), width='stretch')
                     st.caption("The CSV_Row / KGL ID column matches Txn IDs in the Monthly Report Kaggle mode.")
 
                     st.markdown("#### 📊 Fraud Probability — Top 50 Flagged")
@@ -722,7 +722,7 @@ This only needs to be done once — the model is saved to disk.
                                    title="Top 50 Transactions by Fraud Probability (Kaggle Model)")
                     fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                       plot_bgcolor="rgba(0,0,0,0)")
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width='stretch')
 
                     st.session_state["results_df"]  = results
                     st.session_state["is_kaggle"]   = True
@@ -765,7 +765,7 @@ This only needs to be done once — the model is saved to disk.
                     display_cols.insert(0, "Is_Fraud")
 
                 st.dataframe(combined[display_cols].reset_index(drop=True),
-                             use_container_width=True)
+                             width='stretch')
 
                 st.markdown("#### 📊 Fraud Probability — Top 50 Flagged")
                 top50 = fraud_df.nlargest(50, "Fraud_Probability").reset_index(drop=True)
@@ -776,7 +776,7 @@ This only needs to be done once — the model is saved to disk.
                                title="Top 50 Transactions by Fraud Probability")
                 fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                   plot_bgcolor="rgba(0,0,0,0)")
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
 
                 st.markdown("#### 🔬 Feature Risk Contribution in Flagged Transactions")
                 feat_risk_cols = [c for c in results.columns if c.endswith("_Risk")
@@ -802,7 +802,7 @@ This only needs to be done once — the model is saved to disk.
                     fig_rc.update_layout(template="plotly_dark",
                                          paper_bgcolor="rgba(0,0,0,0)",
                                          plot_bgcolor="rgba(0,0,0,0)")
-                    st.plotly_chart(fig_rc, use_container_width=True)
+                    st.plotly_chart(fig_rc, width='stretch')
 
                 st.session_state["results_df"] = results
                 st.session_state["is_kaggle"]  = False
@@ -862,11 +862,11 @@ This only needs to be done once — the model is saved to disk.
                 "Direction":     ["↑ Fraud" if v > 0 else "↓ Fraud" for v in sv],
             }
             feat_table = pd.DataFrame(feat_data)
-            st.dataframe(feat_table, use_container_width=True, hide_index=True)
+            st.dataframe(feat_table, width='stretch', hide_index=True)
 
             # SHAP chart
             st.markdown("#### 🧠 SHAP Explanation Chart")
-            st.image(shap_img, use_container_width=True)
+            st.image(shap_img, width='stretch')
 
             # Narrative
             st.markdown("#### 💬 Plain-English Confidence Explanation")
@@ -901,7 +901,7 @@ A value of -0.10 means it pulled the probability down by ~10 points.
         with st.spinner("Computing SHAP values across 300 transactions…"):
             global_img = engine.get_global_explanation()
         if global_img:
-            st.image(global_img, use_container_width=True)
+            st.image(global_img, width='stretch')
             st.success("Global Insight: The top drivers are typically **Velocity_Ratio** "
                        "(spending spike) and **Distance_From_Home** — matching published "
                        "fraud research (Dornadula 2019, Alarfaj 2022).")
@@ -924,7 +924,7 @@ A value of -0.10 means it pulled the probability down by ~10 points.
             "Sudden spending spike vs personal baseline",
         ]
     }
-    st.dataframe(pd.DataFrame(th_data), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(th_data), width='stretch', hide_index=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  TAB 4 — SCALING ANALYSIS
@@ -974,7 +974,7 @@ elif menu == "📈 Dataset Scaling Analysis":
                     progress_bar.progress(1.0, text="Analysis Complete!")
 
             st.dataframe(scaling_df.drop(columns=["Actual Size"]),
-                         use_container_width=True)
+                         width='stretch')
 
             c1, c2 = st.columns(2)
             with c1:
@@ -985,7 +985,7 @@ elif menu == "📈 Dataset Scaling Analysis":
                              barmode="stack")
                 fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                   plot_bgcolor="rgba(0,0,0,0)")
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
             with c2:
                 scaling_df["Time_Numeric"] = scaling_df["Processing Time"].str.replace("s","").astype(float)
                 fig2 = px.line(scaling_df, x="Dataset Size", y="Time_Numeric",
@@ -993,7 +993,7 @@ elif menu == "📈 Dataset Scaling Analysis":
                 fig2.update_traces(line_color="#d4af37")
                 fig2.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                    plot_bgcolor="rgba(0,0,0,0)")
-                st.plotly_chart(fig2, use_container_width=True)
+                st.plotly_chart(fig2, width='stretch')
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  TAB 5 — FRAUD TRANSACTION EXPLORER  (NEW)
@@ -1127,11 +1127,11 @@ elif menu == "🕵️ Fraud Transaction Explorer":
     # Only keep columns that actually exist (Kaggle data won't have behavioral cols)
     display_cols = [c for c in display_cols if c in top10.columns]
     
-    st.dataframe(top10[display_cols], use_container_width=True, hide_index=True)
+    st.dataframe(top10[display_cols], width='stretch', hide_index=True)
 
     # ── Full filtered table ───────────────────────────────────────────────────
     with st.expander(f"📂 View all {len(filtered):,} filtered transactions"):
-        st.dataframe(filtered[display_cols], use_container_width=True, hide_index=True)
+        st.dataframe(filtered[display_cols], width='stretch', hide_index=True)
 
     # ── Charts ────────────────────────────────────────────────────────────────
     if len(filtered) > 0:
@@ -1150,7 +1150,7 @@ elif menu == "🕵️ Fraud Transaction Explorer":
                                 hover_data=hover_cols)
             fig_sc.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)",
                                   plot_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_sc, use_container_width=True)
+            st.plotly_chart(fig_sc, width='stretch')
 
         with ch2:
             risk_counts = filtered["Risk_Level"].value_counts().reset_index()
@@ -1162,7 +1162,7 @@ elif menu == "🕵️ Fraud Transaction Explorer":
                              title="Risk Level Split in Filtered Set")
             fig_pie.update_layout(template="plotly_dark",
                                    paper_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_pie, use_container_width=True)
+            st.plotly_chart(fig_pie, width='stretch')
 
     # ── SHAP Explanation ──────────────────────────────────────────────────────
     st.markdown("---")
@@ -1264,10 +1264,10 @@ elif menu == "🕵️ Fraud Transaction Explorer":
                     "SHAP":      [f"{'+' if v>0 else ''}{v:.4f}" for v in sv],
                     "Direction": ["↑ Fraud" if v > 0 else "↓ Fraud" for v in sv],
                 })
-                st.dataframe(feat_table, use_container_width=True, hide_index=True)
+                st.dataframe(feat_table, width='stretch', hide_index=True)
 
             with right:
-                st.image(shap_img, use_container_width=True)
+                st.image(shap_img, width='stretch')
 
             # Plain-English narrative
             st.markdown("##### 💬 Plain-English Confidence Explanation")
@@ -1537,7 +1537,7 @@ elif menu == "🩺 Card Health Check":
             if st.session_state["realtime_enabled"]
             else "🔴 Enable Live Monitoring"
         )
-        if st.button(btn_label, use_container_width=True):
+        if st.button(btn_label, width='stretch'):
             st.session_state["realtime_enabled"] = not st.session_state["realtime_enabled"]
             st.session_state["last_refresh_time"] = 0.0
             st.rerun()
@@ -1760,7 +1760,7 @@ elif menu == "🩺 Card Health Check":
             process_btn = st.button(
                 "🚨 Process Transaction",
                 type="primary",
-                use_container_width=True,
+                width='stretch',
                 key="panel2_process")
 
         if process_btn:
@@ -1931,7 +1931,7 @@ elif menu == "🩺 Card Health Check":
             hist_df.columns = ["Time", "Location", "Amount ($)", "# Transactions", "Merchant", "Flagged"]
             hist_df["Flagged"] = hist_df["Flagged"].map({True: "🔴 Yes", False: "✅ No"})
             hist_df["Time"] = hist_df["Time"].str[:19].str.replace("T", " ")
-            st.dataframe(hist_df, use_container_width=True, hide_index=True)
+            st.dataframe(hist_df, width='stretch', hide_index=True)
         else:
             st.info("No session history yet.")
     else:
@@ -2037,7 +2037,7 @@ elif menu == "🔐 Security & Threats":
             "Is_High_Risk_Merchant": 0, "Avg_Spent_7D": 85, "Velocity_Ratio": 1.9,
             "Note": "Every feature just under threshold — this pattern itself is suspicious"
         }])
-        st.dataframe(evasion_example, use_container_width=True, hide_index=True)
+        st.dataframe(evasion_example, width='stretch', hide_index=True)
         st.warning("This transaction would be marked 'Safe' by a threshold-only system. Our ensemble flags it at ~38% fraud probability because all features simultaneously at their upper-safe boundary is statistically rare in genuine transactions.")
 
         st.markdown("---")
@@ -2086,7 +2086,7 @@ elif menu == "🔐 Security & Threats":
                            "Information Security Management — audit logging and access control"],
             "Our Status": ["Design-aligned ✅","Design-aligned ✅","Compliant ✅","Roadmap 🔄"],
         }
-        st.dataframe(pd.DataFrame(compliance_data), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(compliance_data), width='stretch', hide_index=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  TAB 8 — MONTHLY REPORT  (Kaggle toggle + auto-send on generate)
@@ -2151,7 +2151,7 @@ elif menu == "📋 Monthly Report":
     else:
         st.warning("⚠️ No alert email saved in your profile. Report will be generated but not emailed. Save an email in Card Health → Panel 1 first.")
 
-    if st.button("📊 Generate & Send Report", type="primary", use_container_width=True):
+    if st.button("📊 Generate & Send Report", type="primary", width='stretch'):
         period_label = f"Last {period_days} Days"
 
         if report_type == "🧪 Synthetic User Data":
@@ -2228,14 +2228,14 @@ elif menu == "📋 Monthly Report":
         ])
         display_cols = ["txn_id", "date", "time", "merchant", "location", "amount", "risk_level"]
         with tab_all:
-            st.dataframe(txn_df[display_cols], use_container_width=True, hide_index=True)
+            st.dataframe(txn_df[display_cols], width='stretch', hide_index=True)
         with tab_flagged:
             if len(flagged_df):
-                st.dataframe(flagged_df[display_cols], use_container_width=True, hide_index=True)
+                st.dataframe(flagged_df[display_cols], width='stretch', hide_index=True)
             else:
                 st.success("No flagged transactions!")
         with tab_safe:
-            st.dataframe(safe_df[display_cols], use_container_width=True, hide_index=True)
+            st.dataframe(safe_df[display_cols], width='stretch', hide_index=True)
 
         if report_type == "📊 Real Kaggle Fraud Cases":
             st.info(
@@ -2258,7 +2258,7 @@ elif menu == "📋 Monthly Report":
             file_name = f"SecureGuard_Monthly_{data_label}_{pd.Timestamp.now().strftime('%Y%m%d')}.pdf",
             mime      = "application/pdf",
             type      = "primary",
-            use_container_width = True,
+            width='stretch',
         )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2321,7 +2321,7 @@ elif menu == "⚙️ Settings":
                                color_continuous_scale="Blues")
             fig_cm.update_traces(text=text_labels, texttemplate="%{text}")
             fig_cm.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-            st.plotly_chart(fig_cm, use_container_width=True)
+            st.plotly_chart(fig_cm, width='stretch')
 
     with col_b:
         st.warning("#### Risk Threshold Reference")
@@ -2373,7 +2373,7 @@ elif menu == "⚙️ Settings":
                            color_continuous_scale="Blues")
         fig_cm.update_traces(text=text_labels, texttemplate="%{text}")
         fig_cm.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig_cm, use_container_width=True)
+        st.plotly_chart(fig_cm, width='stretch')
         st.cache_resource.clear()
 
 # ─────────────────────────────────────────────────────────────────────────────
