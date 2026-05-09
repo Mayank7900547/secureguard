@@ -2,11 +2,11 @@
 monthly_report.py
 =================
 SecureGuard — Synthetic Transaction Generator + Monthly Summary PDF Report
-
+ 
 Generates 15-30 days of realistic synthetic transactions for a user
 and produces a comprehensive watermarked PDF summary report.
 """
-
+ 
 from __future__ import annotations
 import io
 import random
@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Optional
-
+ 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import mm
@@ -25,7 +25,7 @@ from reportlab.platypus import (
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from reportlab.pdfgen import canvas as rl_canvas
-
+ 
 # ── Colour palette ──────────────────────────────────────────────────────────
 GOLD   = colors.HexColor("#d4af37")
 CORAL  = colors.HexColor("#e63946")
@@ -37,22 +37,22 @@ GREEN  = colors.HexColor("#2ec4b6")
 AMBER  = colors.HexColor("#f5d060")
 NAVY   = colors.HexColor("#0f1d38")
 ORANGE = colors.HexColor("#ff8c42")
-
+ 
 W, H = A4
-
+ 
 MERCHANTS_SAFE     = ["Grocery Store","Pharmacy","Petrol Station","Restaurant","Online Shopping",
                        "Supermarket","Coffee Shop","Bookstore","Clothing Store","Electronics"]
 MERCHANTS_MODERATE = ["Travel Agency","Hotel","Car Rental","Gaming Store","Furniture Store"]
 MERCHANTS_HIGH     = ["Crypto Exchange","Gambling","Forex Broker","Luxury Goods","Casino"]
-
+ 
 CITIES_INDIA  = ["Mumbai","Delhi","Bangalore","Hyderabad","Chennai","Pune","Kolkata","Jaipur"]
 CITIES_ABROAD = ["Dubai","London","Singapore","New York","Hong Kong","Shanghai","Moscow","Lagos"]
-
-
+ 
+ 
 # ══════════════════════════════════════════════════════════════════════════════
 #  SYNTHETIC DATA GENERATOR
 # ══════════════════════════════════════════════════════════════════════════════
-
+ 
 def generate_synthetic_transactions(
     profile: dict,
     days: int = 15,
@@ -61,38 +61,38 @@ def generate_synthetic_transactions(
 ) -> pd.DataFrame:
     """
     Generate synthetic transaction history for a user profile.
-
+ 
     profile keys used:
         full_name, registered_location, daily_spend_limit,
         max_transactions_day, card_last4
     """
     random.seed(seed)
     np.random.seed(seed)
-
+ 
     daily_limit  = float(profile.get("daily_spend_limit", 80))
     max_txn_day  = int(profile.get("max_transactions_day", 10))
     home_city    = profile.get("registered_location", "India").split(",")[0].strip()
     end_date     = datetime.now()
     start_date   = end_date - timedelta(days=days)
-
+ 
     rows = []
     txn_id = 1000
-
+ 
     for day_offset in range(days):
         current_date = start_date + timedelta(days=day_offset)
         n_txns = random.randint(1, max(2, max_txn_day - 2))
-
+ 
         for _ in range(n_txns):
             hour   = random.randint(8, 22)
             minute = random.randint(0, 59)
             ts     = current_date.replace(hour=hour, minute=minute, second=random.randint(0,59))
-
+ 
             # Normal transaction
             merchant_cat = random.choices(
                 ["safe", "moderate", "high"],
                 weights=[0.80, 0.15, 0.05]
             )[0]
-
+ 
             if merchant_cat == "safe":
                 merchant = random.choice(MERCHANTS_SAFE)
                 amount   = round(random.uniform(5, daily_limit * 0.8), 2)
@@ -108,9 +108,9 @@ def generate_synthetic_transactions(
                 amount   = round(random.uniform(daily_limit, daily_limit * 3), 2)
                 location = random.choice(CITIES_INDIA)
                 risk     = "High"
-
+ 
             time_delta = random.randint(30, 150)
-
+ 
             rows.append({
                 "txn_id":      f"TXN{txn_id:06d}",
                 "timestamp":   ts,
@@ -125,7 +125,7 @@ def generate_synthetic_transactions(
                 "flag_reason": "",
             })
             txn_id += 1
-
+ 
     # Inject fraud transactions
     fraud_indices = random.sample(range(len(rows)), min(fraud_count, len(rows)))
     for idx in fraud_indices:
@@ -136,15 +136,15 @@ def generate_synthetic_transactions(
         rows[idx]["risk_level"]  = "High Risk"
         rows[idx]["flagged"]     = True
         rows[idx]["flag_reason"] = "Geographic impossibility + spending spike + time delta anomaly"
-
+ 
     df = pd.DataFrame(rows).sort_values("timestamp").reset_index(drop=True)
     return df
-
-
+ 
+ 
 # ══════════════════════════════════════════════════════════════════════════════
 #  WATERMARK
 # ══════════════════════════════════════════════════════════════════════════════
-
+ 
 def _watermark(c, doc):
     """Draw SecureGuard watermark on every page."""
     c.saveState()
@@ -155,7 +155,7 @@ def _watermark(c, doc):
     c.drawCentredString(0, 0, "SecureGuard AI")
     c.rotate(-35)
     c.translate(-W / 2, -H / 2)
-
+ 
     # Footer
     c.setFont("Helvetica", 8)
     c.setFillColorRGB(0.4, 0.4, 0.4)
@@ -163,12 +163,12 @@ def _watermark(c, doc):
         f"SecureGuard AI · Confidential Report · Generated {datetime.now().strftime('%d %b %Y %H:%M')}")
     c.drawRightString(W - 20*mm, 10*mm, f"Page {doc.page}")
     c.restoreState()
-
-
+ 
+ 
 # ══════════════════════════════════════════════════════════════════════════════
 #  MONTHLY SUMMARY PDF
 # ══════════════════════════════════════════════════════════════════════════════
-
+ 
 def generate_monthly_report(
     profile: dict,
     txn_df:  pd.DataFrame,
@@ -179,18 +179,18 @@ def generate_monthly_report(
     Returns PDF as bytes.
     """
     buf = io.BytesIO()
-
+ 
     doc = SimpleDocTemplate(
         buf,
         pagesize=A4,
         topMargin=18*mm, bottomMargin=18*mm,
         leftMargin=18*mm, rightMargin=18*mm,
     )
-
+ 
     # ── Styles ────────────────────────────────────────────────────────────────
     def sty(name, **kw):
         return ParagraphStyle(name, **kw)
-
+ 
     S = {
         "title":    sty("title",    fontName="Helvetica-Bold",  fontSize=22, textColor=GOLD,   spaceAfter=4),
         "subtitle": sty("subtitle", fontName="Helvetica",       fontSize=10, textColor=MUTED,  spaceAfter=12),
@@ -203,12 +203,12 @@ def generate_monthly_report(
         "center":   sty("center",   fontName="Helvetica",       fontSize=9,  textColor=MUTED,  alignment=TA_CENTER),
         "small":    sty("small",    fontName="Helvetica",       fontSize=8,  textColor=MUTED,  spaceAfter=2),
     }
-
+ 
     story = []
-
+ 
     # ── COVER HEADER ──────────────────────────────────────────────────────────
     story.append(Spacer(1, 8*mm))
-
+ 
     # Header table with logo text + report info
     header_data = [[
         Paragraph("🛡️ <b>SecureGuard AI</b>", sty("hdr", fontName="Helvetica-Bold", fontSize=18, textColor=GOLD)),
@@ -230,7 +230,7 @@ def generate_monthly_report(
     ]))
     story.append(header_tbl)
     story.append(Spacer(1, 6*mm))
-
+ 
     # ── CARDHOLDER INFO ───────────────────────────────────────────────────────
     card4    = profile.get("card_last4", "XXXX")
     name     = profile.get("full_name", "—")
@@ -239,7 +239,7 @@ def generate_monthly_report(
     exp_m    = profile.get("card_expiry_month")
     exp_y    = profile.get("card_expiry_year")
     expiry   = f"{int(exp_m):02d}/{str(int(exp_y))[-2:]}" if exp_m and exp_y else "—"
-
+ 
     info_data = [
         [Paragraph("<b>Cardholder</b>", S["small"]),   Paragraph(name, S["body"]),
          Paragraph("<b>Card Number</b>", S["small"]),   Paragraph(f"**** **** **** {card4}", S["body"])],
@@ -260,10 +260,10 @@ def generate_monthly_report(
     story.append(info_tbl)
     story.append(Spacer(1, 6*mm))
     story.append(HRFlowable(width="100%", thickness=0.5, color=GOLD, spaceAfter=6*mm))
-
+ 
     # ── SUMMARY STATISTICS ────────────────────────────────────────────────────
     story.append(Paragraph("📊 Period Summary", S["h2"]))
-
+ 
     total_txns    = len(txn_df)
     total_spend   = txn_df["amount"].sum()
     flagged_txns  = txn_df[txn_df["flagged"] == True]
@@ -272,9 +272,9 @@ def generate_monthly_report(
     max_txn_amt   = txn_df["amount"].max()
     flag_count    = len(flagged_txns)
     flag_pct      = (flag_count / total_txns * 100) if total_txns > 0 else 0
-
+ 
     stat_color = CORAL if flag_count > 0 else GREEN
-
+ 
     stats_data = [
         ["Metric", "Value", "Metric", "Value"],
         ["Total Transactions",    str(total_txns),          "Total Spend",         f"${total_spend:,.2f}"],
@@ -282,7 +282,7 @@ def generate_monthly_report(
         ["Safe Transactions",     str(len(safe_txns)),      "Avg Transaction",     f"${avg_txn:,.2f}"],
         ["Largest Transaction",   f"${max_txn_amt:,.2f}",  "Days Covered",        str(txn_df["date"].nunique())],
     ]
-
+ 
     col_w = (W - 36*mm) / 4
     stats_tbl = Table(stats_data, colWidths=[col_w*1.3, col_w*0.7, col_w*1.3, col_w*0.7])
     stats_tbl.setStyle(TableStyle([
@@ -305,10 +305,10 @@ def generate_monthly_report(
     ]))
     story.append(stats_tbl)
     story.append(Spacer(1, 6*mm))
-
+ 
     # ── RISK DISTRIBUTION ─────────────────────────────────────────────────────
     story.append(Paragraph("🎯 Risk Distribution", S["h2"]))
-
+ 
     risk_counts = txn_df["risk_level"].value_counts().to_dict()
     risk_rows   = []
     for level, color_val in [("Safe", GREEN), ("Moderate", AMBER), ("High", ORANGE), ("High Risk", CORAL)]:
@@ -322,7 +322,7 @@ def generate_monthly_report(
                 Paragraph(f"<b>{count}</b>", sty("cnt", fontName="Helvetica-Bold", fontSize=9, textColor=WHITE, alignment=TA_CENTER)),
                 Paragraph(f"{pct:.1f}%", sty("pct", fontName="Helvetica", fontSize=9, textColor=MUTED, alignment=TA_CENTER)),
             ])
-
+ 
     if risk_rows:
         risk_tbl = Table(risk_rows, colWidths=[(W-36*mm)*x for x in [0.2, 0.55, 0.12, 0.13]])
         risk_tbl.setStyle(TableStyle([
@@ -334,10 +334,10 @@ def generate_monthly_report(
             ("RIGHTPADDING",  (0,0), (-1,-1), 8),
         ]))
         story.append(risk_tbl)
-
+ 
     story.append(Spacer(1, 6*mm))
     story.append(HRFlowable(width="100%", thickness=0.4, color=colors.HexColor("#1e2d4a"), spaceAfter=4*mm))
-
+ 
     # ── FLAGGED TRANSACTIONS ──────────────────────────────────────────────────
     if flag_count > 0:
         story.append(Paragraph(f"🚨 Flagged Transactions ({flag_count})", S["h2"]))
@@ -347,7 +347,7 @@ def generate_monthly_report(
             S["body"]
         ))
         story.append(Spacer(1, 3*mm))
-
+ 
         flag_header = [
             Paragraph("<b>Txn ID</b>",    S["small"]),
             Paragraph("<b>Date</b>",      S["small"]),
@@ -358,7 +358,7 @@ def generate_monthly_report(
             Paragraph("<b>Risk</b>",      S["small"]),
         ]
         flag_rows_data = [flag_header]
-
+ 
         for _, row in flagged_txns.iterrows():
             flag_rows_data.append([
                 Paragraph(str(row["txn_id"]), S["small"]),
@@ -369,7 +369,7 @@ def generate_monthly_report(
                 Paragraph(f"${row['amount']:,.2f}", sty("amt_f", fontName="Helvetica-Bold", fontSize=8, textColor=CORAL)),
                 Paragraph("🔴 HIGH", sty("risk_f", fontName="Helvetica-Bold", fontSize=8, textColor=CORAL)),
             ])
-
+ 
         col_ws = [(W-36*mm)*x for x in [0.12, 0.13, 0.09, 0.22, 0.18, 0.13, 0.13]]
         flag_tbl = Table(flag_rows_data, colWidths=col_ws, repeatRows=1)
         flag_tbl.setStyle(TableStyle([
@@ -387,7 +387,7 @@ def generate_monthly_report(
         ]))
         story.append(flag_tbl)
         story.append(Spacer(1, 4*mm))
-
+ 
         # Flag reasons
         for _, row in flagged_txns.iterrows():
             if row.get("flag_reason"):
@@ -395,10 +395,10 @@ def generate_monthly_report(
                     f"<b>{row['txn_id']}</b> — {row['flag_reason']}",
                     sty("fr", fontName="Helvetica", fontSize=8, textColor=CORAL, leftIndent=8, spaceAfter=3)
                 ))
-
+ 
         story.append(Spacer(1, 4*mm))
         story.append(HRFlowable(width="100%", thickness=0.4, color=colors.HexColor("#1e2d4a"), spaceAfter=4*mm))
-
+ 
     # ── ALL TRANSACTIONS TABLE ────────────────────────────────────────────────
     story.append(PageBreak())
     story.append(Paragraph("📋 Full Transaction Log", S["h2"]))
@@ -407,7 +407,7 @@ def generate_monthly_report(
         S["body"]
     ))
     story.append(Spacer(1, 3*mm))
-
+ 
     txn_header = [
         Paragraph("<b>Txn ID</b>",   S["small"]),
         Paragraph("<b>Date</b>",     S["small"]),
@@ -418,7 +418,7 @@ def generate_monthly_report(
         Paragraph("<b>Status</b>",   S["small"]),
     ]
     txn_rows = [txn_header]
-
+ 
     for _, row in txn_df.iterrows():
         is_flagged = row.get("flagged", False)
         status_p   = Paragraph(
@@ -438,7 +438,7 @@ def generate_monthly_report(
                           fontSize=8, textColor=amt_color)),
             status_p,
         ])
-
+ 
     col_ws2 = [(W-36*mm)*x for x in [0.12, 0.13, 0.09, 0.22, 0.18, 0.13, 0.13]]
     txn_tbl = Table(txn_rows, colWidths=col_ws2, repeatRows=1)
     txn_tbl.setStyle(TableStyle([
@@ -455,11 +455,11 @@ def generate_monthly_report(
     ]))
     story.append(txn_tbl)
     story.append(Spacer(1, 6*mm))
-
+ 
     # ── RECOMMENDATIONS ───────────────────────────────────────────────────────
     story.append(HRFlowable(width="100%", thickness=0.5, color=GOLD, spaceAfter=4*mm))
     story.append(Paragraph("💡 Recommendations & Actions", S["h2"]))
-
+ 
     recs = []
     if flag_count > 0:
         recs += [
@@ -472,14 +472,14 @@ def generate_monthly_report(
     if txn_df[txn_df["risk_level"] == "Moderate"].shape[0] > 2:
         recs.append(("⚠️ Monitor", AMBER,
             "You have multiple moderate-risk transactions. Consider reviewing your spending at travel agencies and hotels."))
-
+ 
     recs += [
         ("✅ Good Practice", GREEN,
          "Run a Full Card Health Check in the SecureGuard dashboard every 30 days for a comprehensive card safety report."),
         ("📧 Alerts", GREEN,
          "Ensure your alert email is up to date so you receive instant notifications for any suspicious activity."),
     ]
-
+ 
     for label, col, text in recs:
         rec_data = [[
             Paragraph(f"<b>{label}</b>",
@@ -499,7 +499,7 @@ def generate_monthly_report(
         ]))
         story.append(rec_tbl)
         story.append(Spacer(1, 3*mm))
-
+ 
     # ── FOOTER DISCLAIMER ─────────────────────────────────────────────────────
     story.append(Spacer(1, 6*mm))
     story.append(HRFlowable(width="100%", thickness=0.3, color=MUTED, spaceAfter=3*mm))
@@ -510,6 +510,79 @@ def generate_monthly_report(
         "Always consult your bank for official account statements.",
         sty("disc", fontName="Helvetica-Oblique", fontSize=7, textColor=MUTED, alignment=TA_CENTER)
     ))
-
+ 
     doc.build(story, onFirstPage=_watermark, onLaterPages=_watermark)
     return buf.getvalue()
+ 
+# ══════════════════════════════════════════════════════════════════════════════
+#  KAGGLE FRAUD REPORT — uses real uploaded CSV transactions
+# ══════════════════════════════════════════════════════════════════════════════
+ 
+def prepare_kaggle_fraud_transactions(df: pd.DataFrame, limit: int = 200) -> pd.DataFrame:
+    """
+    Convert a Kaggle creditcard.csv DataFrame into a display-friendly
+    transaction DataFrame compatible with generate_kaggle_fraud_report().
+    """
+    out = df.copy().head(limit).reset_index(drop=True)
+ 
+    if "txn_id" not in out.columns:
+        out["txn_id"] = [f"TXN{i+1:06d}" for i in range(len(out))]
+ 
+    if "date" not in out.columns or "time" not in out.columns:
+        base = datetime.now()
+        timestamps = [base - timedelta(seconds=int(t)) for t in out.get("Time", range(len(out)))]
+        out["date"] = [t.strftime("%d %b %Y") for t in timestamps]
+        out["time"] = [t.strftime("%H:%M") for t in timestamps]
+ 
+    if "merchant" not in out.columns:
+        merchants_safe = ["Online Shopping", "Grocery Store", "Petrol Station",
+                          "Restaurant", "Pharmacy", "Electronics", "Supermarket"]
+        merchants_high = ["Crypto Exchange", "Gambling", "Forex Broker", "Casino"]
+        random.seed(42)
+        out["merchant"] = [
+            random.choice(merchants_high) if row.get("Is_High_Risk_Merchant", 0) == 1
+            else random.choice(merchants_safe)
+            for _, row in out.iterrows()
+        ]
+ 
+    if "location" not in out.columns:
+        cities = ["Mumbai", "Delhi", "Bangalore", "London", "Dubai",
+                  "Singapore", "New York", "Chennai", "Pune", "Hyderabad"]
+        random.seed(42)
+        out["location"] = [random.choice(cities) for _ in range(len(out))]
+ 
+    if "flagged" not in out.columns:
+        if "Predicted_Fraud" in out.columns:
+            out["flagged"] = out["Predicted_Fraud"].astype(bool)
+        elif "Class" in out.columns:
+            out["flagged"] = out["Class"].astype(bool)
+        else:
+            out["flagged"] = False
+ 
+    if "risk_level" not in out.columns:
+        if "Risk_Level" in out.columns:
+            out["risk_level"] = out["Risk_Level"]
+        else:
+            out["risk_level"] = out["flagged"].map({True: "High Risk", False: "Safe"})
+ 
+    if "amount" not in out.columns:
+        out["amount"] = out.get("Amount", pd.Series([0.0] * len(out)))
+ 
+    if "flag_reason" not in out.columns:
+        out["flag_reason"] = out["flagged"].map(
+            {True: "ML model flagged — high fraud probability", False: ""})
+ 
+    return out[["txn_id", "date", "time", "merchant", "location",
+                "amount", "risk_level", "flagged", "flag_reason"]]
+ 
+ 
+def generate_kaggle_fraud_report(
+    profile: dict,
+    txn_df:  pd.DataFrame,
+    period:  str = "Kaggle Dataset Analysis",
+) -> bytes:
+    """
+    Generate a Kaggle fraud analysis PDF report.
+    Reuses generate_monthly_report() — same layout, different period label.
+    """
+    return generate_monthly_report(profile, txn_df, period=period)
