@@ -629,8 +629,24 @@ The confidence score is the final verdict — not any individual bar.
         uploaded = st.file_uploader("Drop CSV here (Kaggle creditcard.csv or behavioral format)", type="csv")
 
         if uploaded:
-            raw_df = pd.read_csv(uploaded)
+            raw_df    = pd.read_csv(uploaded)
             is_kaggle = "V1" in raw_df.columns
+            # Persist immediately so switching tabs doesn't lose the file
+            st.session_state["_uploaded_raw_df"]    = raw_df
+            st.session_state["_uploaded_is_kaggle"] = is_kaggle
+            if is_kaggle:
+                st.session_state["kaggle_raw_df"] = raw_df
+        elif "_uploaded_raw_df" in st.session_state:
+            # File uploader reset after tab switch - restore from session_state
+            raw_df    = st.session_state["_uploaded_raw_df"]
+            is_kaggle = st.session_state["_uploaded_is_kaggle"]
+            if is_kaggle:
+                st.session_state["kaggle_raw_df"] = raw_df
+            uploaded  = True   # treat as if still present
+
+        if uploaded:
+            raw_df    = st.session_state.get("_uploaded_raw_df", raw_df)
+            is_kaggle = st.session_state.get("_uploaded_is_kaggle", "V1" in raw_df.columns)
             fmt = "Kaggle (V1–V28)" if is_kaggle else "Behavioral"
             st.success(f"Format detected: **{fmt}** — {len(raw_df):,} transactions loaded.")
 
