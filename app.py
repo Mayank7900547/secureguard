@@ -709,9 +709,10 @@ This only needs to be done once — the model is saved to disk.
                         display_cols = ["Class"] + display_cols
                     display_cols += kaggle_v_cols
 
-                    st.dataframe(combined[[c for c in display_cols if c in combined.columns]
-                                         ].reset_index(drop=True),
-                                 use_container_width=True)
+                    combined_display = combined[[c for c in display_cols if c in combined.columns]].copy()
+                    combined_display.insert(0, "CSV_Row / KGL ID", combined_display.index.map(lambda x: f"KGL{x:06d}"))
+                    st.dataframe(combined_display.reset_index(drop=True), use_container_width=True)
+                    st.caption("The CSV_Row / KGL ID column matches Txn IDs in the Monthly Report Kaggle mode.")
 
                     st.markdown("#### 📊 Fraud Probability — Top 50 Flagged")
                     top50 = fraud_df.nlargest(50, "Fraud_Probability").reset_index(drop=True)
@@ -2168,7 +2169,7 @@ elif menu == "📋 Monthly Report":
                 raw_kaggle = st.session_state["kaggle_raw_df"]
                 fraud_rows = raw_kaggle[raw_kaggle["Class"] == 1].copy()
                 sample_n   = min(fraud_count, len(fraud_rows))
-                sampled    = fraud_rows.sample(n=sample_n, random_state=42).reset_index(drop=True)
+                sampled    = fraud_rows.sample(n=sample_n, random_state=42)  # preserve original CSV index for KGL IDs
 
                 txn_rows = []
                 for i, row in sampled.iterrows():
