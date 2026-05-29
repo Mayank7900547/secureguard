@@ -1,0 +1,33 @@
+name: SecureGuard Daily Reminders
+
+on:
+  schedule:
+    # Runs every day at 3:30 AM UTC = 9:00 AM IST
+    - cron: '30 3 * * *'
+  workflow_dispatch:  # allows manual trigger from GitHub Actions tab
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run reminder script
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON:        ${{ secrets.SUPABASE_ANON }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GMAIL_ADDRESS:        ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASS:       ${{ secrets.GMAIL_APP_PASS }}
+          APP_URL:              ${{ secrets.APP_URL }}
+        run: python send_reminders.py
