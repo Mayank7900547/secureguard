@@ -263,3 +263,193 @@ def send_monthly_summary(
 
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+def send_reminder_email(
+    to_email:   str,
+    user_name:  str,
+    profile:    dict,
+    days_since: int,
+    app_url:    str = "https://a6a28n9sf5txvyahfppggz.streamlit.app",
+) -> dict:
+    """
+    Send a card health check reminder email.
+    Tells the user they haven't checked in X days and nudges them to do it.
+    """
+    freq        = profile.get("reminder_frequency", "15days")
+    card_last4  = profile.get("card_last4", "****")
+    location    = profile.get("registered_location", "India")
+    daily_limit = profile.get("daily_spend_limit", 80)
+    ts          = datetime.now().strftime("%d %b %Y")
+
+    checks_html = ""
+    checks = [
+        ("Transaction Velocity",        "Unusual number of transactions in a short window — card cloning signal."),
+        ("Geographic Impossibility",    "Two transactions in physically impossible locations within minutes."),
+        ("High-Risk Merchant Frequency","Too many transactions at casinos, crypto exchanges, or gambling sites."),
+        ("Spending Velocity Spike",     "A transaction more than 10× your 7-day average spend."),
+        ("Card Expiry Status",          "Check if your card is close to expiry or already expired."),
+        ("CVV / PIN Failure History",   "Recent wrong CVV or PIN attempts — brute-forcing signal."),
+        ("Chip vs Swipe Mismatch",      "Chip card used via magnetic stripe — primary card-cloning indicator."),
+        ("BIN / Merchant Blacklist",    "Transaction at a merchant known for fraud or data breaches."),
+    ]
+    for name, desc in checks:
+        checks_html += f"""
+        <tr>
+          <td style="padding:10px 14px;border-bottom:1px solid #1e1e1e;">
+            <span style="color:#d4af37;font-weight:700;font-size:13px;">⚡ {name}</span><br>
+            <span style="color:#a0998a;font-size:12px;">{desc}</span>
+          </td>
+        </tr>"""
+
+    html = f"""
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:30px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0"
+        style="background:#111;border-radius:12px;border:1px solid #d4af3730;overflow:hidden;">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#1a1400,#0a0a0a);padding:28px 32px;
+              border-bottom:1px solid #d4af3740;">
+            <span style="font-size:26px;font-weight:800;
+              background:linear-gradient(90deg,#d4af37,#f5d060);
+              -webkit-background-clip:text;-webkit-text-fill-color:transparent;">
+              🛡️ SecureGuard AI
+            </span>
+            <div style="color:#a0998a;font-size:13px;margin-top:4px;">
+              Card Health Reminder System
+            </div>
+          </td>
+        </tr>
+
+        <!-- Warning Banner -->
+        <tr>
+          <td style="background:#1a1200;padding:20px 32px;border-bottom:1px solid #d4af3730;">
+            <div style="color:#f5d060;font-size:20px;font-weight:700;">
+              ⏰ Time for Your Card Health Check
+            </div>
+            <div style="color:#a0998a;font-size:13px;margin-top:6px;">
+              Hi <strong style="color:#fff;">{user_name}</strong>, it's been
+              <strong style="color:#f5d060;">{days_since} days</strong> since your last
+              SecureGuard report. Your {freq.replace("days"," day").replace("weekly","weekly")}
+              check is due.
+            </div>
+          </td>
+        </tr>
+
+        <!-- Card Summary -->
+        <tr>
+          <td style="padding:20px 32px;border-bottom:1px solid #222;">
+            <div style="color:#d4af37;font-size:13px;font-weight:700;
+                text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">
+              Your Card Profile
+            </div>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="color:#a0998a;font-size:13px;padding:4px 0;">Card</td>
+                <td style="color:#fff;font-size:14px;text-align:right;">**** **** **** {card_last4}</td>
+              </tr>
+              <tr>
+                <td style="color:#a0998a;font-size:13px;padding:4px 0;">Registered Location</td>
+                <td style="color:#2ec4b6;font-size:14px;text-align:right;">{location}</td>
+              </tr>
+              <tr>
+                <td style="color:#a0998a;font-size:13px;padding:4px 0;">Daily Spend Limit</td>
+                <td style="color:#fff;font-size:14px;text-align:right;">${daily_limit:,.0f}</td>
+              </tr>
+              <tr>
+                <td style="color:#a0998a;font-size:13px;padding:4px 0;">Report Generated</td>
+                <td style="color:#fff;font-size:14px;text-align:right;">{ts}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Checks to Run -->
+        <tr>
+          <td style="padding:20px 32px;border-bottom:1px solid #222;">
+            <div style="color:#d4af37;font-size:13px;font-weight:700;
+                text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">
+              8 Checks You Should Run Today
+            </div>
+            <table width="100%" cellpadding="0" cellspacing="0"
+              style="border:1px solid #222;border-radius:8px;overflow:hidden;background:#0f0f0f;">
+              {checks_html}
+            </table>
+          </td>
+        </tr>
+
+        <!-- CTA Button -->
+        <tr>
+          <td style="padding:28px 32px;text-align:center;border-bottom:1px solid #222;">
+            <a href="{app_url}"
+              style="background:linear-gradient(90deg,#d4af37,#f5d060);
+                color:#0a0a0a;font-weight:800;font-size:16px;
+                padding:14px 40px;border-radius:8px;text-decoration:none;
+                display:inline-block;letter-spacing:0.5px;">
+              🛡️ Open SecureGuard &amp; Generate Report
+            </a>
+            <div style="color:#555;font-size:11px;margin-top:12px;">
+              Go to Card Health Check → Generate Full Report
+            </div>
+          </td>
+        </tr>
+
+        <!-- Why this matters -->
+        <tr>
+          <td style="padding:20px 32px;background:#0f1a0f;border-bottom:1px solid #222;">
+            <div style="color:#2ec4b6;font-size:13px;line-height:1.8;">
+              💡 <strong>Why regular checks matter:</strong><br>
+              Most card fraud goes undetected for <strong>14–30 days</strong>.
+              Running a SecureGuard health check takes under 60 seconds and can catch
+              cloning, velocity attacks, and geographic fraud before your bank does.
+            </div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:18px 32px;background:#0a0a0a;">
+            <div style="color:#555;font-size:11px;text-align:center;line-height:1.6;">
+              You're receiving this because you set a {freq.replace("15days","15-day").replace("30days","30-day")}
+              reminder in SecureGuard.<br>
+              Change frequency anytime in Settings → Reminder Frequency.<br>
+              © 2026 SecureGuard AI · Fraud Detection System
+            </div>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"⏰ SecureGuard Reminder — Run Your {freq.replace('15days','15-Day').replace('30days','30-Day').replace('weekly','Weekly')} Card Health Check"
+        msg["From"]    = f"SecureGuard AI <{GMAIL_ADDRESS}>"
+        msg["To"]      = to_email
+
+        plain = (
+            f"SecureGuard AI — Card Health Reminder\n\n"
+            f"Hi {user_name},\n\n"
+            f"It's been {days_since} days since your last card health check.\n"
+            f"Visit SecureGuard to run your 8-point health check:\n{app_url}\n\n"
+            f"— SecureGuard AI"
+        )
+        msg.attach(MIMEText(plain, "plain"))
+        msg.attach(MIMEText(html, "html"))
+
+        ctx = ssl.create_default_context()
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx) as server:
+            server.login(GMAIL_ADDRESS, GMAIL_APP_PASS)
+            server.sendmail(GMAIL_ADDRESS, to_email, msg.as_string())
+
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
