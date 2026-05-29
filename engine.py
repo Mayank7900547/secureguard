@@ -146,52 +146,60 @@ class FraudEngine:
     # ── Synthetic data (domain-informed, distinct fraud profiles) ────────────
     def generate_synthetic_data(self, n_samples=10_000):
         np.random.seed(42)
-        fraud_ratio = 0.02
+        # Increased from 2% to 5% so model sees enough fraud cases to learn
+        # combinations of features rather than single-feature rules
+        fraud_ratio = 0.05
         n_fraud = int(n_samples * fraud_ratio)
         n_legit = n_samples - n_fraud
 
         # ── LEGITIMATE transactions ──────────────────────────────────────────
-        # All features within safe thresholds
+        # Extended upper ranges so legitimate and fraud overlap realistically.
+        # Real cardholders do make large purchases and travel far occasionally.
         legit = pd.DataFrame({
-            "Amount":               np.random.exponential(80, n_legit).clip(1, 490),
-            "Time_Delta":           np.random.normal(85, 12, n_legit).clip(10, 109),
-            "Distance_From_Home":   np.random.lognormal(2.0, 0.5, n_legit).clip(0, 49),
-            "Is_High_Risk_Merchant":np.random.choice([0,1], n_legit, p=[0.95, 0.05]).astype(float),
+            "Amount":               np.random.exponential(80, n_legit).clip(1, 1500),
+            "Time_Delta":           np.random.normal(85, 20, n_legit).clip(10, 175),
+            "Distance_From_Home":   np.random.lognormal(2.5, 0.8, n_legit).clip(0, 180),
+            "Is_High_Risk_Merchant":np.random.choice([0,1], n_legit, p=[0.92, 0.08]).astype(float),
             "Avg_Spent_7D":         np.random.normal(80, 22, n_legit).clip(10, 500),
             "Is_Fraud":             0,
         })
 
         # ── FRAUDULENT transactions — 3 distinct real-world fraud patterns ───
+        # Ranges lowered to overlap with legitimate so the model must learn
+        # feature combinations, not just single-feature cutoffs
         n_p1 = n_fraud // 3
         n_p2 = n_fraud // 3
         n_p3 = n_fraud - n_p1 - n_p2
 
-        # Pattern 1: Card-present skimming — large ATM withdrawal, far from home, slow terminal
+        # Pattern 1: Card-present skimming — large withdrawal, far from home, slow terminal
+        # Amount starts at $800 (was $2000) — overlaps with legitimate high spenders
         p1 = pd.DataFrame({
-            "Amount":               np.random.uniform(2000, 8000, n_p1),
-            "Time_Delta":           np.random.normal(180, 15, n_p1).clip(160, 400),
-            "Distance_From_Home":   np.random.uniform(150, 600, n_p1),
+            "Amount":               np.random.uniform(800, 6000, n_p1),
+            "Time_Delta":           np.random.normal(170, 25, n_p1).clip(130, 400),
+            "Distance_From_Home":   np.random.uniform(100, 600, n_p1),
             "Is_High_Risk_Merchant":np.random.choice([0,1], n_p1, p=[0.3, 0.7]).astype(float),
             "Avg_Spent_7D":         np.random.normal(65, 18, n_p1).clip(10, 200),
             "Is_Fraud":             1,
         })
 
         # Pattern 2: Online fraud — high-risk merchant, velocity spike, moderate distance
+        # Amount starts at $200 (was $500) — small fraudulent transactions exist
         p2 = pd.DataFrame({
-            "Amount":               np.random.uniform(500, 3500, n_p2),
-            "Time_Delta":           np.random.normal(130, 14, n_p2).clip(110, 350),
-            "Distance_From_Home":   np.random.uniform(50, 200, n_p2),
+            "Amount":               np.random.uniform(200, 3500, n_p2),
+            "Time_Delta":           np.random.normal(125, 20, n_p2).clip(90, 350),
+            "Distance_From_Home":   np.random.uniform(30, 250, n_p2),
             "Is_High_Risk_Merchant":np.ones(n_p2, dtype=float),
             "Avg_Spent_7D":         np.random.normal(48, 14, n_p2).clip(10, 100),
             "Is_Fraud":             1,
         })
 
-        # Pattern 3: Account takeover — mixed signals, moderate–high on multiple features
+        # Pattern 3: Account takeover — subtle signals, hardest pattern to detect
+        # Deliberately modest amounts to force model to rely on combinations
         p3 = pd.DataFrame({
-            "Amount":               np.random.uniform(550, 2600, n_p3),
-            "Time_Delta":           np.random.normal(125, 18, n_p3).clip(110, 300),
-            "Distance_From_Home":   np.random.uniform(55, 180, n_p3),
-            "Is_High_Risk_Merchant":np.random.choice([0,1], n_p3, p=[0.5, 0.5]).astype(float),
+            "Amount":               np.random.uniform(150, 2000, n_p3),
+            "Time_Delta":           np.random.normal(118, 22, n_p3).clip(90, 280),
+            "Distance_From_Home":   np.random.uniform(40, 200, n_p3),
+            "Is_High_Risk_Merchant":np.random.choice([0,1], n_p3, p=[0.45, 0.55]).astype(float),
             "Avg_Spent_7D":         np.random.normal(58, 18, n_p3).clip(10, 200),
             "Is_Fraud":             1,
         })
@@ -423,19 +431,20 @@ class FraudEngine:
 
         base = [
             ("rf",  RandomForestClassifier(n_estimators=150, max_depth=10,
-                                           class_weight="balanced", random_state=42)),
+                                           class_weight="balanced", random_state=42,
+                                           n_jobs=-1)),
             ("xgb", XGBClassifier(n_estimators=150, max_depth=6, learning_rate=0.05,
                                   objective="binary:logistic", scale_pos_weight=5,
-                                  random_state=42, verbosity=0)),
+                                  random_state=42, verbosity=0, n_jobs=-1)),
         ]
         self.model = StackingClassifier(
             estimators=base,
             final_estimator=LogisticRegression(max_iter=1000),
-            cv=5)
+            cv=3)
 
         self.model.fit(X_train_sc, y_train)
 
-        bg = shap.sample(pd.DataFrame(X_train_sc, columns=FEATURES), 50)
+        bg = shap.sample(pd.DataFrame(X_train_sc, columns=FEATURES), 25)
         self.explainer = shap.KernelExplainer(self.model.predict_proba, bg)
         self._save_model()
 
@@ -554,12 +563,12 @@ class KaggleFraudEngine:
         self.model = StackingClassifier(
             estimators=base,
             final_estimator=LogisticRegression(max_iter=1000),
-            cv=5)
+            cv=3)
 
         self.model.fit(X_train_sc, y_train)
 
         # SHAP background sample
-        bg = shap.sample(pd.DataFrame(X_train_sc, columns=KAGGLE_FEATURES), 50)
+        bg = shap.sample(pd.DataFrame(X_train_sc, columns=KAGGLE_FEATURES), 25)
         self.explainer = shap.KernelExplainer(self.model.predict_proba, bg)
         self._save_model()
 
