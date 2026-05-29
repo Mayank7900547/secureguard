@@ -136,6 +136,9 @@ class FraudEngine:
             except Exception:
                 pass
 
+    def is_ready(self):
+        return self.model is not None
+
     def _save_model(self):
         with open(self.model_path, "wb") as f:
             pickle.dump((self.model, self.explainer, self.scaler), f)
