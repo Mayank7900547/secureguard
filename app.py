@@ -6,8 +6,8 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from card_validator import CardValidator, generate_card_report
-from supabase_auth import sign_up, sign_in, sign_out, upsert_profile, get_profile, log_session_transaction, get_session_history, log_alert
-from email_alerts import send_fraud_alert, send_monthly_summary
+from supabase_auth import sign_up, sign_in, sign_out, upsert_profile, get_profile, log_session_transaction, get_session_history, log_alert, update_last_report_at, should_send_reminder
+from email_alerts import send_fraud_alert, send_monthly_summary, send_reminder_email
 from monthly_report import generate_synthetic_transactions, generate_monthly_report, generate_kaggle_fraud_report, prepare_kaggle_fraud_transactions
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -157,6 +157,23 @@ def _auth_gate():
                             pp["email"] = email
                             upsert_profile(result["access_token"], result["user"]["id"], pp)
                             st.session_state.pop("pending_profile", None)
+                        # ── Reminder check on login ───────────────────────
+                        if profile and should_send_reminder(profile):
+                            alert_email = profile.get("email", email)
+                            if alert_email:
+                                from datetime import datetime
+                                last = profile.get("last_report_at")
+                                try:
+                                    days_since = (datetime.utcnow() - datetime.fromisoformat(
+                                        last.replace("Z",""))).days if last else 99
+                                except Exception:
+                                    days_since = 99
+                                send_reminder_email(
+                                    to_email   = alert_email,
+                                    user_name  = profile.get("full_name", email.split("@")[0]),
+                                    profile    = profile,
+                                    days_since = days_since,
+                                )
                         st.success("✅ Logged in!")
                         st.rerun()
                     else:
@@ -244,6 +261,14 @@ def load_kaggle_engine():
 engine        = load_engine()
 kaggle_engine = load_kaggle_engine()
 
+# ── Auto-train if no saved model exists ──────────────────────────────────────
+if not engine.is_ready():
+    with st.spinner("🤖 First launch: training fraud model on synthetic data (~30s)…"):
+        _data = engine.generate_synthetic_data(n_samples=5000)
+        engine.train_stacking_ensemble(_data)
+    st.cache_resource.clear()
+    st.rerun()
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  SIDEBAR
 # ─────────────────────────────────────────────────────────────────────────────
@@ -261,6 +286,7 @@ with st.sidebar:
         "🔐 Security & Threats",
         "📋 Monthly Report",
         "📑 Comparative Analysis",
+        "🔔 Reminders",
         "⚙️ Settings",
     ])
     st.markdown("---")
@@ -627,8 +653,16 @@ The confidence score is the final verdict — not any individual bar.
     if mode == "📁 Upload CSV":
         uploaded = st.file_uploader("Drop CSV here (Kaggle creditcard.csv or behavioral format)", type="csv")
 
-        if uploaded:
-            raw_df = pd.read_csv(uploaded)
+        # ── Persist uploaded file across tab switches ─────────────────────────
+        if uploaded is not None:
+            st.session_state["uploaded_csv_bytes"] = uploaded.read()
+            st.session_state["uploaded_csv_name"]  = uploaded.name
+
+        if "uploaded_csv_bytes" in st.session_state:
+            import io
+            raw_df = pd.read_csv(io.BytesIO(st.session_state["uploaded_csv_bytes"]))
+            if uploaded is None:
+                st.info(f"📂 Using previously uploaded file: **{st.session_state.get('uploaded_csv_name', 'file.csv')}**")
             is_kaggle = "V1" in raw_df.columns
             fmt = "Kaggle (V1–V28)" if is_kaggle else "Behavioral"
             st.success(f"Format detected: **{fmt}** — {len(raw_df):,} transactions loaded.")
@@ -1577,6 +1611,16 @@ elif menu == "🩺 Card Health Check":
                                           value=int(saved_max_txn), key="p1_txn")
             p_email    = st.text_input("Alert Email", value=user_email, key="p1_email")
             p_acct     = st.text_input("Account Holder Name", value=saved_acct, key="p1_acct")
+            freq_options = ["weekly", "15days", "30days"]
+            freq_labels  = {"weekly": "📅 Weekly", "15days": "📅 Every 15 Days", "30days": "📅 Every 30 Days"}
+            saved_freq   = db_profile.get("reminder_frequency", "15days")
+            p_freq = st.selectbox(
+                "🔔 Reminder Frequency",
+                freq_options,
+                index=freq_options.index(saved_freq) if saved_freq in freq_options else 1,
+                format_func=lambda x: freq_labels[x],
+                key="p1_freq",
+            )
 
         st.markdown("<div style='color:#a0998a;font-size:.78rem;margin-top:4px;'>"
                     "⚠️ CVV and full card/account numbers are never stored — by design.</div>",
@@ -1594,6 +1638,7 @@ elif menu == "🩺 Card Health Check":
                 "card_expiry_year":     p_exp_y,
                 "ifsc_code":            p_ifsc,
                 "account_name":         p_acct,
+                "reminder_frequency":   p_freq,
             }
             with st.spinner("Saving…"):
                 result = upsert_profile(access_token, user_id, profile_data)
@@ -2049,6 +2094,10 @@ elif menu == "📋 Monthly Report":
         if "Real Fraud" in report_type:
             # ── VERSION A: Real Kaggle fraud cases ────────────────────────────
             uploaded_df = st.session_state.get("uploaded_df", None)
+            # fallback: rebuild from persisted bytes if direct df not set
+            if uploaded_df is None and "uploaded_csv_bytes" in st.session_state:
+                import io
+                uploaded_df = pd.read_csv(io.BytesIO(st.session_state["uploaded_csv_bytes"]))
             if uploaded_df is None:
                 st.error("❌ No CSV uploaded. Please upload your creditcard.csv in the **Real-time Detection** tab first.")
                 st.stop()
@@ -2056,10 +2105,11 @@ elif menu == "📋 Monthly Report":
             with st.spinner("Extracting real fraud cases and building report..."):
                 try:
                     txn_df, pdf_bytes = generate_kaggle_fraud_report(
-                        profile  = db_profile,
-                        df_full  = uploaded_df,
-                        n_sample = n_sample,
-                        period   = f"Last 15 Days — {n_sample} Real Fraud Cases",
+                        profile    = db_profile,
+                        df_full    = uploaded_df,
+                        n_sample   = n_sample,
+                        period     = f"Last 15 Days — {n_sample} Real Fraud Cases",
+                        results_df = st.session_state.get("results_df", None),
                     )
                     period_label = f"Kaggle Fraud Cases ({n_sample} transactions)"
                     is_kaggle    = True
@@ -2078,6 +2128,32 @@ elif menu == "📋 Monthly Report":
                 period_label = f"Last {period_days} Days"
                 pdf_bytes    = generate_monthly_report(db_profile, txn_df, period=period_label)
                 is_kaggle    = False
+
+            # ── Stamp last_report_at in Supabase ─────────────────────────────
+            _tok = st.session_state.get("access_token","")
+            _uid = st.session_state.get("user_id","")
+            if _tok and _uid:
+                update_last_report_at(_tok, _uid)
+                # refresh local profile so reminder logic sees new timestamp
+                if "db_profile" in st.session_state:
+                    st.session_state["db_profile"]["last_report_at"] = __import__("datetime").datetime.utcnow().isoformat()
+
+            # ── Auto-send email for synthetic report ──────────────────────────
+            alert_email = db_profile.get("email", "")
+            if alert_email:
+                with st.spinner(f"📧 Sending report to {alert_email}..."):
+                    email_result = send_monthly_summary(
+                        to_email  = alert_email,
+                        user_name = db_profile.get("full_name", "User"),
+                        pdf_bytes = pdf_bytes,
+                        period    = period_label,
+                    )
+                if email_result["ok"]:
+                    st.success(f"✅ Report emailed automatically to **{alert_email}**!")
+                else:
+                    st.warning(f"⚠️ Report generated but email failed: {email_result.get('error','')}")
+            else:
+                st.warning("⚠️ No email in your profile — update it in Settings to receive auto-emails.")
 
         flag_count = txn_df["flagged"].sum() if "flagged" in txn_df.columns else len(txn_df)
         st.success(f"✅ Report generated — {len(txn_df)} transactions, {flag_count} flagged")
@@ -2172,6 +2248,197 @@ elif menu == "📑 Comparative Analysis":
 # ─────────────────────────────────────────────────────────────────────────────
 #  TAB 9 — SETTINGS
 # ─────────────────────────────────────────────────────────────────────────────
+elif menu == "🔔 Reminders":
+    st.markdown("### 🔔 Card Health Reminder Centre")
+    st.markdown("Track your report schedule, manage reminder frequency, and send manual nudges.")
+
+    db_profile  = st.session_state.get("db_profile", {})
+    access_token = st.session_state.get("access_token", "")
+    user_id      = st.session_state.get("user_id", "")
+    user_email   = st.session_state.get("user_email", "")
+
+    if not db_profile:
+        st.warning("⚠️ Please complete your profile in Settings first.")
+        st.stop()
+
+    from datetime import datetime, timedelta
+
+    # ── Compute status ────────────────────────────────────────────────────────
+    freq          = db_profile.get("reminder_frequency", "15days")
+    freq_days     = {"weekly": 7, "15days": 15, "30days": 30}.get(freq, 15)
+    freq_label    = {"weekly": "Weekly", "15days": "Every 15 Days", "30days": "Every 30 Days"}.get(freq, "Every 15 Days")
+    last_raw      = db_profile.get("last_report_at")
+    alert_email   = db_profile.get("email", user_email)
+
+    if last_raw:
+        try:
+            last_dt    = datetime.fromisoformat(last_raw.replace("Z", ""))
+            days_since = (datetime.utcnow() - last_dt).days
+            days_left  = max(0, freq_days - days_since)
+            last_str   = last_dt.strftime("%d %b %Y, %H:%M UTC")
+            next_str   = (last_dt + timedelta(days=freq_days)).strftime("%d %b %Y")
+            overdue    = days_since >= freq_days
+        except Exception:
+            days_since = 99; days_left = 0; last_str = "Unknown"
+            next_str = "Now"; overdue = True
+    else:
+        days_since = 99; days_left = 0
+        last_str   = "Never generated"
+        next_str   = "Now"
+        overdue    = True
+
+    # ── Status card ───────────────────────────────────────────────────────────
+    if overdue:
+        status_color = "#e63946"
+        status_label = "🔴 OVERDUE"
+        status_bg    = "#1a0505"
+        bar_pct      = 100
+    elif days_left <= 3:
+        status_color = "#f5d060"
+        status_label = "🟡 DUE SOON"
+        status_bg    = "#1a1200"
+        bar_pct      = int((days_since / freq_days) * 100)
+    else:
+        status_color = "#2ec4b6"
+        status_label = "🟢 ON TRACK"
+        status_bg    = "#0f1a0f"
+        bar_pct      = int((days_since / freq_days) * 100)
+
+    st.markdown(f"""
+    <div style="background:{status_bg};border:1px solid {status_color}40;border-radius:12px;
+        padding:24px 28px;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <span style="color:{status_color};font-size:22px;font-weight:800;">{status_label}</span>
+        <span style="color:#a0998a;font-size:13px;">{freq_label} reminder</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:16px;margin-bottom:20px;">
+        <div style="background:#0a0a0a;border-radius:8px;padding:14px;text-align:center;">
+          <div style="color:#a0998a;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Last Report</div>
+          <div style="color:#fff;font-size:13px;font-weight:700;margin-top:6px;">{last_str}</div>
+        </div>
+        <div style="background:#0a0a0a;border-radius:8px;padding:14px;text-align:center;">
+          <div style="color:#a0998a;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Days Since</div>
+          <div style="color:{status_color};font-size:24px;font-weight:800;margin-top:4px;">{days_since if days_since < 99 else "—"}</div>
+        </div>
+        <div style="background:#0a0a0a;border-radius:8px;padding:14px;text-align:center;">
+          <div style="color:#a0998a;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Days Remaining</div>
+          <div style="color:#d4af37;font-size:24px;font-weight:800;margin-top:4px;">{days_left if not overdue else "0"}</div>
+        </div>
+        <div style="background:#0a0a0a;border-radius:8px;padding:14px;text-align:center;">
+          <div style="color:#a0998a;font-size:11px;text-transform:uppercase;letter-spacing:1px;">Next Due</div>
+          <div style="color:#fff;font-size:13px;font-weight:700;margin-top:6px;">{next_str}</div>
+        </div>
+      </div>
+      <div style="background:#111;border-radius:6px;height:8px;overflow:hidden;">
+        <div style="background:{status_color};width:{min(bar_pct,100)}%;height:100%;border-radius:6px;
+            transition:width 0.3s;"></div>
+      </div>
+      <div style="color:#555;font-size:11px;margin-top:6px;text-align:right;">
+        {bar_pct}% of {freq_label.lower()} cycle used
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Frequency selector ────────────────────────────────────────────────────
+    st.markdown("#### ⚙️ Reminder Frequency")
+    freq_col1, freq_col2 = st.columns([2, 1])
+    with freq_col1:
+        freq_options = ["weekly", "15days", "30days"]
+        freq_labels  = {"weekly": "📅 Weekly (every 7 days)",
+                        "15days": "📅 Every 15 Days",
+                        "30days": "📅 Every 30 Days"}
+        new_freq = st.selectbox(
+            "How often should we remind you to check your card?",
+            freq_options,
+            index=freq_options.index(freq) if freq in freq_options else 1,
+            format_func=lambda x: freq_labels[x],
+            key="rem_freq_select",
+        )
+    with freq_col2:
+        st.markdown("<div style='height:28px'></div>", unsafe_allow_html=True)
+        if st.button("💾 Save Frequency", type="primary"):
+            updated = dict(db_profile)
+            updated["reminder_frequency"] = new_freq
+            res = upsert_profile(access_token, user_id, updated)
+            if res["ok"]:
+                st.session_state["db_profile"]["reminder_frequency"] = new_freq
+                st.success(f"✅ Saved — reminders set to {freq_labels[new_freq]}")
+            else:
+                st.error("❌ Save failed")
+
+    st.markdown("---")
+
+    # ── Manual send + alert email display ─────────────────────────────────────
+    st.markdown("#### 📧 Reminder Email")
+    rem_c1, rem_c2 = st.columns([3, 1])
+    with rem_c1:
+        st.markdown(f"""
+        <div style="background:#1a1a1a;border:1px solid #d4af3730;border-radius:8px;padding:14px 18px;">
+          <span style="color:#a0998a;font-size:12px;">Reminders sent to</span><br>
+          <span style="color:#f5d060;font-size:16px;font-weight:700;">{alert_email or "No email set — update in Settings"}</span>
+        </div>
+        """, unsafe_allow_html=True)
+    with rem_c2:
+        st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+        if st.button("📨 Send Now", type="secondary", use_container_width=True):
+            if alert_email:
+                with st.spinner("Sending reminder email…"):
+                    result = send_reminder_email(
+                        to_email   = alert_email,
+                        user_name  = db_profile.get("full_name", "User"),
+                        profile    = db_profile,
+                        days_since = days_since if days_since < 99 else 0,
+                    )
+                if result["ok"]:
+                    st.success(f"✅ Reminder sent to {alert_email}!")
+                else:
+                    st.error(f"❌ Failed: {result.get('error','')}")
+            else:
+                st.warning("⚠️ No email set. Go to Settings and add your email.")
+
+    st.markdown("---")
+
+    # ── What the email contains ───────────────────────────────────────────────
+    st.markdown("#### 📋 What Your Reminder Email Contains")
+    checks = [
+        ("⚡ Transaction Velocity",        "Unusual number of transactions in a short window."),
+        ("🌍 Geographic Impossibility",    "Two transactions in physically impossible locations."),
+        ("🏪 High-Risk Merchant Frequency","Too many transactions at casinos or crypto exchanges."),
+        ("📈 Spending Velocity Spike",     "A transaction more than 10× your 7-day average."),
+        ("💳 Card Expiry Status",          "Card close to expiry or already expired."),
+        ("🔐 CVV / PIN Failure History",   "Recent wrong CVV or PIN attempts — brute-forcing signal."),
+        ("🔄 Chip vs Swipe Mismatch",      "Chip card used via magnetic stripe — cloning indicator."),
+        ("🚫 BIN / Merchant Blacklist",    "Transaction at a merchant known for fraud or breaches."),
+    ]
+    check_cols = st.columns(2)
+    for i, (name, desc) in enumerate(checks):
+        with check_cols[i % 2]:
+            st.markdown(f"""
+            <div style="background:#1a1a1a;border:1px solid #d4af3720;border-radius:8px;
+                padding:12px 14px;margin-bottom:10px;">
+              <div style="color:#d4af37;font-size:13px;font-weight:700;">{name}</div>
+              <div style="color:#a0998a;font-size:12px;margin-top:4px;">{desc}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # ── Tips ──────────────────────────────────────────────────────────────────
+    st.markdown(f"""
+    <div style="background:#0f1a0f;border:1px solid #2ec4b630;border-radius:8px;padding:16px 20px;">
+      <div style="color:#2ec4b6;font-size:14px;font-weight:700;margin-bottom:8px;">
+        💡 Why Regular Checks Matter
+      </div>
+      <div style="color:#a0998a;font-size:13px;line-height:1.8;">
+        Most card fraud goes undetected for <strong style="color:#fff;">14–30 days</strong>.
+        Running a SecureGuard health check takes under 60 seconds and can catch cloning,
+        velocity attacks, and geographic fraud <strong style="color:#fff;">before your bank does</strong>.<br><br>
+        Your current setting sends a reminder every <strong style="color:#f5d060;">{freq_label.lower()}</strong>.
+        We recommend <strong style="color:#f5d060;">every 15 days</strong> for most users.
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
 elif menu == "⚙️ Settings":
     st.markdown("### ⚙️ System Configuration")
 
