@@ -4,12 +4,12 @@ supabase_auth.py
 SecureGuard — Supabase Auth + Database via REST API
 No SDK needed — pure requests calls to Supabase REST endpoints.
 """
-
+ 
 import requests
 import json
 from datetime import datetime
 from typing import Optional
-
+ 
 # ── Config — reads from st.secrets (Streamlit Cloud) or falls back to hardcoded (local) ──
 try:
     import streamlit as st
@@ -18,17 +18,17 @@ try:
 except Exception:
     SUPABASE_URL  = "https://jeesqtofaccdvztwgnhc.supabase.co"
     SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImplZXNxdG9mYWNjZHZ6dHdnbmhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNzg0MTgsImV4cCI6MjA5Mzc1NDQxOH0.xoij0Bdfd_F3BbRtlKXWDPmBg196k0gzl50NzZ-Q7PU"
-
+ 
 AUTH_URL = f"{SUPABASE_URL}/auth/v1"
 DB_URL   = f"{SUPABASE_URL}/rest/v1"
-
+ 
 # ── Headers ─────────────────────────────────────────────────────────────────────
 def _anon_headers():
     return {
         "apikey":       SUPABASE_ANON,
         "Content-Type": "application/json",
     }
-
+ 
 def _auth_headers(access_token: str):
     return {
         "apikey":        SUPABASE_ANON,
@@ -36,11 +36,11 @@ def _auth_headers(access_token: str):
         "Content-Type":  "application/json",
         "Prefer":        "return=representation",
     }
-
+ 
 # ══════════════════════════════════════════════════════════════════════════════
 #  AUTH
 # ══════════════════════════════════════════════════════════════════════════════
-
+ 
 def sign_up(email: str, password: str, full_name: str) -> dict:
     """Register a new user. Returns {ok, user, session, error}."""
     r = requests.post(
@@ -61,8 +61,8 @@ def sign_up(email: str, password: str, full_name: str) -> dict:
         return {"ok": True, "user": data.get("user", {}), "session": data.get("session")}
     err = data.get("msg") or data.get("error_description") or data.get("error") or "Signup failed"
     return {"ok": False, "error": str(err)}
-
-
+ 
+ 
 def sign_in(email: str, password: str) -> dict:
     """Sign in existing user. Returns {ok, user, session, access_token, error}."""
     r = requests.post(
@@ -80,8 +80,8 @@ def sign_in(email: str, password: str) -> dict:
             "session":      data,
         }
     return {"ok": False, "error": data.get("error_description") or data.get("msg") or str(data)}
-
-
+ 
+ 
 def sign_out(access_token: str) -> bool:
     """Sign out the current user."""
     r = requests.post(
@@ -90,12 +90,12 @@ def sign_out(access_token: str) -> bool:
         timeout=10,
     )
     return r.status_code in (200, 204)
-
-
+ 
+ 
 # ══════════════════════════════════════════════════════════════════════════════
 #  USER PROFILES TABLE
 # ══════════════════════════════════════════════════════════════════════════════
-
+ 
 def upsert_profile(access_token: str, user_id: str, profile: dict) -> dict:
     """Create or update a user's card profile."""
     payload = {
@@ -110,6 +110,8 @@ def upsert_profile(access_token: str, user_id: str, profile: dict) -> dict:
         "card_expiry_year":      profile.get("card_expiry_year"),
         "ifsc_code":             profile.get("ifsc_code", ""),
         "account_name":          profile.get("account_name", ""),
+        "reminder_frequency":    profile.get("reminder_frequency", "15days"),
+        "last_report_at":        profile.get("last_report_at", None),
         "updated_at":            datetime.utcnow().isoformat(),
     }
     # Try update first, then insert if not exists
@@ -125,7 +127,7 @@ def upsert_profile(access_token: str, user_id: str, profile: dict) -> dict:
         data = patch.json()
         if data:  # record existed and was updated
             return {"ok": True, "profile": data[0] if isinstance(data, list) else data}
-
+ 
     # No existing record — insert fresh
     ins = requests.post(
         f"{DB_URL}/user_profiles",
@@ -137,8 +139,8 @@ def upsert_profile(access_token: str, user_id: str, profile: dict) -> dict:
         data = ins.json()
         return {"ok": True, "profile": data[0] if isinstance(data, list) else data}
     return {"ok": False, "error": ins.text}
-
-
+ 
+ 
 def get_profile(access_token: str, user_id: str) -> Optional[dict]:
     """Fetch a user's profile. Returns profile dict or None."""
     r = requests.get(
@@ -151,12 +153,12 @@ def get_profile(access_token: str, user_id: str) -> Optional[dict]:
         data = r.json()
         return data[0] if data else None
     return None
-
-
+ 
+ 
 # ══════════════════════════════════════════════════════════════════════════════
 #  TRANSACTION SESSIONS TABLE
 # ══════════════════════════════════════════════════════════════════════════════
-
+ 
 def log_session_transaction(access_token: str, user_id: str, session_data: dict) -> dict:
     """Log an active session transaction (from Panel 2 / attacker simulation)."""
     payload = {
@@ -178,8 +180,8 @@ def log_session_transaction(access_token: str, user_id: str, session_data: dict)
     if r.status_code in (200, 201):
         return {"ok": True}
     return {"ok": False, "error": r.text}
-
-
+ 
+ 
 def get_session_history(access_token: str, user_id: str, limit: int = 15) -> list:
     """Get recent session transactions for a user."""
     r = requests.get(
@@ -195,12 +197,12 @@ def get_session_history(access_token: str, user_id: str, limit: int = 15) -> lis
     if r.status_code == 200:
         return r.json()
     return []
-
-
+ 
+ 
 # ══════════════════════════════════════════════════════════════════════════════
 #  ALERTS TABLE
 # ══════════════════════════════════════════════════════════════════════════════
-
+ 
 def log_alert(access_token: str, user_id: str, alert: dict) -> dict:
     """Log a fraud/health alert to the database."""
     payload = {
@@ -222,3 +224,43 @@ def log_alert(access_token: str, user_id: str, alert: dict) -> dict:
     if r.status_code in (200, 201):
         return {"ok": True}
     return {"ok": False, "error": r.text}
+ 
+# ══════════════════════════════════════════════════════════════════════════════
+#  REMINDER HELPERS
+# ══════════════════════════════════════════════════════════════════════════════
+ 
+def update_last_report_at(access_token: str, user_id: str) -> dict:
+    """Stamp the current UTC time as last_report_at for the user."""
+    r = requests.patch(
+        f"{DB_URL}/user_profiles",
+        headers={**_auth_headers(access_token), "Prefer": "return=representation"},
+        params={"user_id": f"eq.{user_id}"},
+        json={"last_report_at": datetime.utcnow().isoformat()},
+        timeout=10,
+    )
+    return {"ok": r.status_code == 200}
+ 
+ 
+def should_send_reminder(profile: dict) -> bool:
+    """
+    Returns True if enough time has passed since last_report_at
+    based on the user's reminder_frequency setting.
+    """
+    last = profile.get("last_report_at")
+    if not last:
+        return True  # never generated a report — always remind
+ 
+    freq = profile.get("reminder_frequency", "15days")
+    freq_days = {"weekly": 7, "15days": 15, "30days": 30}.get(freq, 15)
+ 
+    try:
+        # handle both with and without timezone suffix
+        last_dt = datetime.fromisoformat(last.replace("Z", "+00:00"))
+        # make naive for comparison
+        if last_dt.tzinfo is not None:
+            from datetime import timezone
+            last_dt = last_dt.astimezone(timezone.utc).replace(tzinfo=None)
+        elapsed = (datetime.utcnow() - last_dt).days
+        return elapsed >= freq_days
+    except Exception:
+        return True
